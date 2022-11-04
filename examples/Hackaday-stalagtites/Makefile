@@ -1,6 +1,6 @@
 TARGET:=stalagtites
 PORT:=/dev/ttyUSB1
-ASSEMBLER:=../../fbb_as.py
+ASSEMBLER:=../../assembler/assemble.py
 
 all: $(TARGET).hex flash
 

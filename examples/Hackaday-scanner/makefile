@@ -1,6 +1,6 @@
 TARGET = scanner
 PORT = /dev/ttyUSB0
-CC = ../../fbb_as.py
+CC = ../../assembler/assemble.py
 
 all: assemble program
 
