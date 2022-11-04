@@ -8,7 +8,8 @@ Back in 2020, when we thought we were going to have a Supercon in Belgrade, Mike
 
 While you can input programs directly, comments and a nice provision for subroutines makes life a lot more navigable.  Learning to use the assembler is a great next step along your journey.
 
-It only requires Python, so if that's already installed, you're good to go.  But note that we also have the same assembler hosted online for your convenience.
+If you don't have Python installed, you can also run the same assembler in the cloud.  (Fluffy!)  http://cloud.wd5gnr.com/badgeasm/
+
 
 ## Example Code
 
@@ -18,6 +19,10 @@ We've written a few examples, blinky and otherwise, to help you on your way.  Bu
 
 Why would you emulate a badge that you have in your hands?  Well, it _does_ make for a faster code, test, code cycle.  So far, we have gotten most of the core functionality of the badge working, but buttons and how to think about IO are still a work in progress.  Hack away!
 
+## Resources
 
+If you somehow got here without checking out the badge landing page: http://hackaday.com/badge
+
+And if you haven't seen Voja's own documentation, which is the _true_ owner's manual for the badge: https://hackaday.io/project/182568-badge-for-supercon6-november-2022
 
 
