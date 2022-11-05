@@ -14,6 +14,7 @@ def parse(filename):
             line_num = line_num_0 + 1
             # Remove leading/trailing whitespace
             line_stripped = line_text.strip()
+            line_parsed = False
 
             # Skip empty lines
             if not line_stripped:
@@ -21,19 +22,18 @@ def parse(filename):
                 continue
 
             # Comments
-            if line_stripped.startswith("#"):
-                comment = line_stripped[1:].strip()
-                expressions.append(intermediate.Comment(filename, line_num, comment))
-                continue
-            if line_stripped.startswith("//"):
-                comment = line_stripped[2:].strip()
-                expressions.append(intermediate.Comment(filename, line_num, comment))
-                continue
-
+            fragments = line_stripped.split("#", 1)
+            line_stripped = fragments[0].strip()
             if line_stripped == "noop":
                 expressions.append(intermediate.Noop(filename, line_num))
-                continue
+                line_parsed = True
 
-            raise errors.BadgeSyntaxError(f"Unknown syntax: {filename}:{line_num}: `line_stripped`")
+            if len(fragments) > 1:
+                comment = fragments[1].strip()
+                expressions.append(intermediate.Comment(filename, line_num, comment))
+                line_parsed = True
+
+            if not line_parsed:
+                raise errors.BadgeSyntaxError(f"Unknown syntax: {filename}:{line_num}: `line_stripped`")
 
     return expressions
