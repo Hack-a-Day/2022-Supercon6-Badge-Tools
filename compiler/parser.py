@@ -1,7 +1,7 @@
 # Parser
 
 import errors
-import intermediate
+import tokens
 
 def parse(filename):
     """Parse source file text"""
@@ -18,19 +18,19 @@ def parse(filename):
 
             # Skip empty lines
             if not line_stripped:
-                # expressions.append(intermediate.Empty(filename, line_num))
+                # expressions.append(tokens.Empty(filename, line_num))
                 continue
 
             # Comments
             fragments = line_stripped.split("#", 1)
             line_stripped = fragments[0].strip()
             if line_stripped == "noop":
-                expressions.append(intermediate.Noop(filename, line_num))
+                expressions.append(tokens.Noop(filename, line_num))
                 line_parsed = True
 
             if len(fragments) > 1:
                 comment = fragments[1].strip()
-                expressions.append(intermediate.Comment(filename, line_num, comment))
+                expressions.append(tokens.Comment(filename, line_num, comment))
                 line_parsed = True
 
             if not line_parsed:

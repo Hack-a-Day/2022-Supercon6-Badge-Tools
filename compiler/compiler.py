@@ -31,12 +31,12 @@ def main():
     arg_parser.add_argument("--simulate", help="Also run emulator with compiled code. Implies --assemble.", action="store_true", default=False)
     args = arg_parser.parse_args()
 
-    parsed_intermediate = []
+    tokens = []
     for source_filename in args.sources:
         source_name = os.path.splitext(source_filename)[0]
         output_name = f"{source_name}.asm"
-        parsed_intermediate.extend(parser.parse(source_filename))
-        output_asm = compile(parsed_intermediate)
+        tokens.extend(parser.parse(source_filename))
+        output_asm = compile(tokens)
         write_hex(output_asm, output_name)
         
         # Assemble to .hex file if desired
