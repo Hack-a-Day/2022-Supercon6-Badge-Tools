@@ -13,8 +13,11 @@ def compile(parsed_source: list) -> str:
     output_asm: str = ""
     """Output assembly"""
 
-    for expression in parsed_source:
-        output_asm += f"{expression.to_asm()}"
+    scope = {}
+
+    for token in parsed_source:
+        token.process(scope)
+        output_asm += f"{token.to_asm()}"
     
     return output_asm
 
@@ -41,12 +44,13 @@ def main():
         
         # Assemble to .hex file if desired
         # If asked to simulate, also assemble
+        aassembler_proc = None
         if args.assemble or args.simulate:
-            subprocess.run(
+            aassembler_proc = subprocess.run(
                 [sys.executable,
                  os.path.join(os.path.dirname(__file__), "..", "assembler", "assemble.py"),
                  output_name])
-        if args.simulate:
+        if args.simulate and aassembler_proc is not None and aassembler_proc.returncode == 0:
             emulator_dir = os.path.join(os.path.dirname(__file__), "..", "emulator")
             bin_relpath = os.path.relpath(output_name, start=emulator_dir)
             subprocess.run(
