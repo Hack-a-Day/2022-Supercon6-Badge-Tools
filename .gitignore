@@ -1,4 +1,5 @@
 compiler/examples/*.asm
+compiler/examples/*.hex
 examples/**/*.hex
 **/__pycache__/**
 *env/**

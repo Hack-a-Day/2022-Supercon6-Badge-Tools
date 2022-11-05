@@ -30,6 +30,10 @@ def parse(filename):
                 expressions.append(intermediate.Comment(filename, line_num, comment))
                 continue
 
+            if line_stripped == "noop":
+                expressions.append(intermediate.Noop(filename, line_num))
+                continue
+
             raise errors.BadgeSyntaxError(f"Unknown syntax: {filename}:{line_num}: `line_stripped`")
 
     return expressions

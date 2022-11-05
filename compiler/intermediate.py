@@ -23,7 +23,7 @@ class Comment(Expression):
     """Comment"""
 
     def to_asm(self):
-        return f"; {self.source_value}"
+        return f"; {self.source_value}\n"
 
 
 class Empty(Expression):
@@ -38,3 +38,13 @@ class Empty(Expression):
 
     def to_asm(self):
         return ""
+
+
+class Noop(Expression):
+    """Advance PC but do nothing useful"""
+
+    def __init__(self, file_source, line_source) -> None:
+        super().__init__(file_source, line_source, "<noop>")
+
+    def to_asm(self):
+        return "jr 0 ; no-op\n"
