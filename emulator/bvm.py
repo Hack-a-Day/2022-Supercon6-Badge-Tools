@@ -103,8 +103,12 @@ class BVM:
             self.yellowLeds[self.ledMap["opcode2"][bit]-1].setVal(bit == opcode2)
 
         #self.badge.step()
-        self.badge.update()
-        self.window.after(self.frameDelay, self.runtimeTasks)
+        try:
+            self.badge.update()
+        except EOFError:
+            return
+        else:
+            self.window.after(self.frameDelay, self.runtimeTasks)
 
 
 
