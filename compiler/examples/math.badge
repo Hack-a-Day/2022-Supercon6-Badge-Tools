@@ -14,3 +14,9 @@ baz = 5 + foo
 
 #foo = bar + baz
 foo = bar + baz
+
+# foo = bar + baz + foo
+foo = bar + baz + foo
+
+# bar = foo - baz
+bar = foo - baz

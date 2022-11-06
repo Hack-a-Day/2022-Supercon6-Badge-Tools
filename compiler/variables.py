@@ -15,6 +15,9 @@ class Variable:
     def get_register(self):
         return self.register.name.lower()
 
+    def __repr__(self) -> str:
+        return f"Var:{self.name}"
+
 
 class Literal:
     """A literal value"""
@@ -30,6 +33,9 @@ class Literal:
             self.value = intval
         else:
             raise errors.BadgeNumberTooBig()
+
+    def __repr__(self) -> str:
+        return f"Lit:{self.value}"
 
 
 class Nibble(Literal):
@@ -55,6 +61,8 @@ class Register(enum.Enum):
     R8 = 8
     R9 = 9
 
+    def __repr__(self) -> str:
+        return f"Reg:{self.name}"
 
 class RegisterPool:
     """Set of available registers"""

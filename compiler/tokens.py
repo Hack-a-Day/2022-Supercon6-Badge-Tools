@@ -82,6 +82,11 @@ class VariableAssign(Token):
                 self.instructions.extend(instrs)
                 self.instructions.append(f"mov {dest}, {temp_var.get_register()} ; {variable.name} = {temp_var.name}\n")
                 temp_var.drop()
+                if temp_var.name in scope:
+                    del scope[temp_var.name]
+
+        print(scope.keys())
+        print(variables.RegisterPool.pool)
 
 
 def process_expression(src_tokens: list, scope: dict) -> tuple[variables.Variable, list]:
@@ -100,7 +105,25 @@ def process_expression(src_tokens: list, scope: dict) -> tuple[variables.Variabl
 
     if operator == "+":
         instructions.append(f"add {left_var.get_register()}, {right_var.get_register()} ; {left_var.name} += {right_var.name}")
+    elif operator == "-":
+        instructions.append(f"sub {left_var.get_register()}, {right_var.get_register()} ; {left_var.name} += {right_var.name}")
+    elif operator == "|":
+        instructions.append(f"or {left_var.get_register()}, {right_var.get_register()} ; {left_var.name} += {right_var.name}")
+    elif operator == "&":
+        instructions.append(f"and {left_var.get_register()}, {right_var.get_register()} ; {left_var.name} += {right_var.name}")
+    elif operator == "^":
+        instructions.append(f"xor {left_var.get_register()}, {right_var.get_register()} ; {left_var.name} += {right_var.name}")
         right_var.drop()  # Done with this temporary variable
+
+    if len(src_tokens) > 3:
+        new_tokens = [left_var.name] + src_tokens[3:]
+        scope[left_var.name] = left_var
+        old_left_var = left_var
+        left_var, new_instrs = process_expression(new_tokens, scope)
+        instructions.extend(new_instrs)
+        del scope[old_left_var.name]
+        old_left_var.drop()
+
 
     return left_var, instructions
 
@@ -112,14 +135,14 @@ def temp_variable_from_value(src: str, scope: dict) -> tuple[variables.Variable,
         # Existing variable
         src_var = scope[src]
         temp_var = variables.Variable(f"{src}_copy")
-        inst = [f"mov {temp_var.get_register()}, {src_var.get_register()} ; {temp_var.name} = {src_var.name}\n"]
+        inst = [f"mov {temp_var.get_register()}, {src_var.get_register()} ; {temp_var.name} = {src_var.name}"]
         return temp_var, inst
     try:
         # int literal value
         value = variables.Nibble(src).value
         dest_var = variables.Variable(f"temp_{value}")
         dest_reg = dest_var.get_register()
-        inst = [f"mov {dest_reg}, {value} ; temp_{value} = {value}\n"]
+        inst = [f"mov {dest_reg}, {value} ; temp_{value} = {value}"]
         return dest_var, inst
     except:
         raise 
