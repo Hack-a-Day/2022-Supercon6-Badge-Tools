@@ -234,7 +234,8 @@ ATTRACT_MODE:
 
     gosub MOVE_DEMONS_X
     gosub DRAW_DEMONS
-    gosub DRAW_BASE     ; FIXME: replace with DRAW_ARROW
+    ; TO BE IMPLEMENTED: gosub DRAW_DEMON_LOGO
+    gosub DRAW_ARROW
     jr FINISH_MODE
 
 ACTIVE_MODE:
@@ -477,9 +478,9 @@ SETUP_ATTRACT_STATE:
     mov r0, PatWiggle
     mov [D1Pattern], r0
     mov [D2Pattern], r0
-    mov r0, [Random]
+    mov r0, 0
     mov [D1PatIdx], r0
-    mov r0, [Random]
+    mov r0, 5
     mov [D2PatIdx], r0
 
     ret r0, 0
@@ -615,6 +616,21 @@ DRAW_LIVES:
     skip nz, 2
       mov r2, 0b0000
       mov r1, 0b0000
+    gosub DRAW_ROW
+    ret r0, 0
+
+DRAW_ARROW:
+    mov r5, 14
+    mov r2, 0b0011
+    mov r1, 0b1100
+    gosub DRAW_ROW
+    mov r5, 12
+    mov r2, 0b0001
+    mov r1, 0b1000
+    gosub DRAW_ROW
+    mov r5, 13
+    gosub DRAW_ROW
+    mov r5, 15
     gosub DRAW_ROW
     ret r0, 0
 
