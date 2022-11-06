@@ -146,13 +146,14 @@ ScoreLow    EQU 0x70    ; 0-9 BCD
 ScoreHigh   EQU 0x71    ; 0-9 BCD
 FrameNum    EQU 0x72
 BasePos     EQU 0x73    ; 0-5
-ShotRow     EQU 0x74    ; 0-14, 15 means don't draw
-Lives       EQU 0x75
-GameState   EQU 0x76
+ShotPos     EQU 0x74
+ShotRow     EQU 0x75    ; 0-14, 15 means don't draw
+Lives       EQU 0x76
+GameState   EQU 0x77
   Attract   EQU 0
   Active    EQU 1
   ShowScore EQU 2
-GameAnim    EQU 0x77
+GameAnim    EQU 0x78
   NoAnim    EQU 0
   WipeUp    EQU 1
   WipeDown  EQU 2
@@ -239,10 +240,16 @@ ATTRACT_MODE:
     jr FINISH_MODE
 
 ACTIVE_MODE:
+    gosub MOVE_SHOT
+    ; gosub MOVE_DEMONS_Y
+    ; gosub ADD_DEMON_IF_NEEDED
     gosub MOVE_DEMONS_X
+
     gosub DRAW_DEMONS
     gosub DRAW_BASE
     gosub DRAW_LIVES
+    gosub DRAW_SHOT
+
     jr FINISH_MODE
 
 SHOW_SCORE_MODE:
@@ -414,6 +421,16 @@ DEC_POSITION:       ; r1 has pos in/out
     skip c, 1
       mov r0, 0
     mov r1, r0
+    ret r0, 0
+
+MOVE_SHOT:
+    mov r0, [ShotRow]
+    cp r0, 15
+    skip nz, 1
+      ret r0, 0
+    dec r0
+    ; FIXME - check for collision with demon
+    mov [ShotRow], r0
     ret r0, 0
 
 INC_SCORE:
@@ -619,6 +636,26 @@ DRAW_LIVES:
     gosub DRAW_ROW
     ret r0, 0
 
+DRAW_SHOT:
+    mov r0, [ShotRow]
+    cp r0, 15           ; don't draw on row 15
+    skip nz, 1
+      ret r0, 0
+    mov r5, r0
+    mov r1, 0b0010
+    mov r0, [ShotPos]
+    gosub SHIFT_LEFT
+    ; instead of calling DRAW_ROW,
+    ; inline a version that ORs shot
+    ; with screen contents
+    mov r0, [r3:r5]
+    or r0, r1
+    mov [r3:r5], r0
+    mov r0, [r4:r5]
+    or r0, r2
+    mov [r4:r5], r0
+    ret r0, 0
+
 DRAW_ARROW:
     mov r5, 14
     mov r2, 0b0011
@@ -725,7 +762,14 @@ FIRE_SHOT:                  ; game state in r2
     cp r0, Active
     skip z, 2
       goto NEXT_STATE       ; go to next state if not active
-    ; FIXME: add shot logic
+    mov r0, [ShotRow]
+    cp r0, 15               ; only fire if no shot on screen
+    skip z, 1
+      ret r0, 0
+    mov r0, 12              ; start on base top
+    mov [ShotRow], r0
+    mov r0, [BasePos]       ; and at BasePos
+    mov [ShotPos], r0
     ret r0, 0
 
 ;
