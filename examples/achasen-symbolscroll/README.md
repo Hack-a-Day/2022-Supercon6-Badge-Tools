@@ -17,3 +17,6 @@ several "two character" symbols including:
 * "\]\[": normal space invader (one empty column on each side)
 * "^\": large space invader (no empty columns)
 * "\_\`": small space invader (one empty start, two empty columns on end)
+
+[2022-11-06-132150-noaudio.webm](https://ipfs.io/ipfs/QmapoWQim4r5bL3rpEHqnCebpeAtP6ePivBk688BU2XPfH)
+
