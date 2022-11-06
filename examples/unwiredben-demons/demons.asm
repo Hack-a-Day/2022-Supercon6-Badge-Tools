@@ -438,12 +438,14 @@ DEC_POSITION:       ; r1 has pos in/out
 
 MOVE_DEMONS_Y:
     mov r8, MID D1Row
+    mov r9, MID D2Row
     gosub MOVE_DEMON_Y
     mov r8, MID D2Row
+    mov r9, MID D1Row
     gosub MOVE_DEMON_Y
     ret r0, 0
 
-MOVE_DEMON_Y:       ; r8 has demon pointer
+MOVE_DEMON_Y:        ; r8 has demon pointer, r9 check demon pointer
     mov r0, [Random] ; only move down 1/4 time
     mov r1, 0b1110   ; so check random to see if
     and r0, r1       ; first three bits are set
@@ -469,8 +471,16 @@ MOVE_DEMON_Y:       ; r8 has demon pointer
     ret r0, 0
 
 DROP_DEMON:
-    inc r1
-    mov r0, r1
+    ; don't allow drop if it will push too close to other demon
+    mov r0, LOW D1Row
+    mov r0, [r9:r0]
+    add r0, 14
+    mov r2, r0      ; r2 is d2.row - 2
+    sub r2, r1      ; compare to d1.row in r1
+    skip nz, 1      ; if equal, return early
+      ret r0, 0
+    inc r1          ; add 1 to r1 and store back
+    mov r0, r1      
     mov r1, LOW D1Row
     mov [r8:r1], r0
     ret r0, 0
