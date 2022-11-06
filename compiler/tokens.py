@@ -1,5 +1,7 @@
 # Intermediate representation
 
+from typing import Optional
+
 import variables
 
 class Token:
@@ -85,9 +87,6 @@ class VariableAssign(Token):
                 if temp_var.name in scope:
                     del scope[temp_var.name]
 
-        print(scope)
-        print(variables.RegisterPool.pool)
-
 
 def process_expression(src_tokens: list, scope: variables.Scope) -> tuple[variables.Variable, list]:
     """Process an expression of multiple math operations"""
@@ -147,3 +146,52 @@ def temp_variable_from_value(src: str, scope: variables.Scope) -> tuple[variable
         return dest_var, inst
     except:
         raise 
+
+
+class FunctionDefine(Token):
+    """Create a function definition"""
+
+    def __init__(self, file_source, line_source, value) -> None:
+        super().__init__(file_source, line_source, value)
+        
+        fun_tokens = value.split(" ")
+
+        self.name: str = fun_tokens[1]
+        self.arg_names: list[str] = fun_tokens[1:]
+        self.ret_var: Optional[variables.Variable] = None
+
+    def process(self, scope: variables.Scope) -> None:
+        scope.push()
+        for arg_name in self.arg_names:
+            scope[arg_name] = variables.Variable(arg_name)
+
+    def to_asm(self) -> str:
+        return f"{self.name}:\n"
+
+
+class FunctionDefineEnd(Token):
+    """End a function definition"""
+
+    def __init__(self, file_source, line_source, value) -> None:
+        super().__init__(file_source, line_source, value)
+
+    def process(self, scope: variables.Scope) -> None:
+        self.instructions = [f"ret R0, 0 ; return from function"]
+        scope.pop()
+
+
+class FunctionCall(Token):
+    """Call a previously defined function"""
+
+    def __init__(self, file_source, line_source, value) -> None:
+        super().__init__(file_source, line_source, value)
+
+        fun_tokens = value.split(" ")
+        
+        self.name:str = fun_tokens[0]
+        self.arg_names: list[str] = fun_tokens[1:]
+
+    def process(self, scope: variables.Scope) -> None:
+        instructions = []
+        for arg_name in self.arg_names:
+            pass
