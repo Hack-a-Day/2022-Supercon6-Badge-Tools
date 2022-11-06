@@ -51,7 +51,7 @@ mov r2, 0 ; storage for the ball's bit
 mov r0,r5  ; go to display page
 mov [Page], r0
 
-mov r0, F_3_kHz; slow down a bit
+mov r0, F_1_kHz; slow down a bit
 mov [Clock], r0
 
 mov r5, 5
@@ -113,10 +113,22 @@ MOV R0,R5
 CP R0, 0    
 SKIP Z, 1  
 JR gr_nz
+and r0, 0 ; clear carry
 mov r0,[Random]
-mov r1, r0
-mov r0,[Random]
-mov r2, r0
+rrc r0  ; logical shift right
+mov r1, 1
+mov r2, 0
+shift: ; 8-bit left shift by r0 bits
+add R1, R1
+adc R2, R2
+dsz r0
+jr shift
+MOV R0, R1 ; complement r1
+XOR R0, 0xF
+MOV R1, R0
+MOV R0, R2 ; complement r2
+XOR R0, 0xF
+MOV R2, R0
 RET R0, 0
 gr_nz:
 MOV R1, 0   
