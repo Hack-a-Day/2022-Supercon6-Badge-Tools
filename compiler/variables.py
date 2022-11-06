@@ -92,3 +92,54 @@ class RegisterPool:
         if reg in RegisterPool.pool:
             raise 
         RegisterPool.pool.append(reg)
+
+
+class Scope:
+    """Implements a program scope for variables"""
+
+    def __init__(self) -> None:
+        self.scope_stack: list[dict[str, Variable]] = [{}]
+
+    def push(self) -> None:
+        self.scope_stack.append({})
+
+    def pop(self) -> None:
+        for var in self.scope_stack[-1].values():
+            var.drop()
+        self.scope_stack.pop()
+
+    def __setitem__(self, key: str, value: Variable) -> None:
+        for frame in self.scope_stack:
+            if key in frame:
+                frame[key] = value
+                return
+        self.scope_stack[-1][key] = value
+
+    def __getitem__(self, key: str) -> Variable:
+        for frame in self.scope_stack:
+            if key in frame:
+                return frame[key]
+        raise KeyError
+
+    def __contains__(self, key):
+        try:
+            self[key]
+            return True
+        except KeyError:
+            False
+
+    def __delitem__(self, key):
+        del self.scope_stack[-1][key]
+
+    def __enter__(self):
+        self.push()
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.pop()
+
+    def __repr__(self) -> str:
+        rep = ""
+        for fidx, frame in enumerate(self.scope_stack):
+            rep += f"{fidx}: {[var for var in frame.values()]};"
+        return rep

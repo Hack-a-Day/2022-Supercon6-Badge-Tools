@@ -6,6 +6,7 @@ import subprocess
 import sys
 
 import parser
+import variables
 
 
 def compile(parsed_source: list) -> str:
@@ -13,10 +14,12 @@ def compile(parsed_source: list) -> str:
     output_asm: str = ""
     """Output assembly"""
 
-    scope = {}
+    scope = variables.Scope()
 
+    with scope:
+        for token in parsed_source:
+            token.process(scope)
     for token in parsed_source:
-        token.process(scope)
         output_asm += f"{token.to_asm()}"
     
     return output_asm
