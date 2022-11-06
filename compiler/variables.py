@@ -43,6 +43,16 @@ class Nibble(Literal):
     """A Signed 4-bit integer"""
     MAXINT = 7
 
+    @classmethod
+    def can_be_nibble(cls, value: str) -> bool:
+        """Test if the value can become a nibble"""
+        try:
+            if (-1 * cls.MAXINT - 1) <= int(value) <= cls.MAXINT:
+                return True
+            return False
+        except ValueError:
+            return False
+
 
 class Byte(Literal):
     """A Signed 8-bit integer"""
@@ -99,14 +109,29 @@ class Scope:
 
     def __init__(self) -> None:
         self.scope_stack: list[dict[str, Variable]] = [{}]
+        self.if_blocks: list[str] = []
+        self.while_blocks: list[str] = []
+        self.func_blocks: list[str] = []
 
-    def push(self) -> None:
+    def push(self, if_block="", while_block="", func_block="") -> None:
         self.scope_stack.append({})
+        if if_block:
+            self.if_blocks.append(if_block)
+        if while_block:
+            self.while_blocks.append(while_block)
+        if func_block:
+            self.func_blocks.append(func_block)
 
-    def pop(self) -> None:
+    def pop(self, pop_if=False, pop_while=False, pop_func=False) -> str:
         for var in self.scope_stack[-1].values():
             var.drop()
         self.scope_stack.pop()
+        if pop_if:
+            return self.if_blocks.pop()
+        if pop_while:
+            return self.while_blocks.pop()
+        if pop_func:
+            return self.func_blocks.pop()
 
     def __setitem__(self, key: str, value: Variable) -> None:
         for frame in self.scope_stack:

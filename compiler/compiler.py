@@ -56,6 +56,7 @@ def main():
         if args.simulate and aassembler_proc is not None and aassembler_proc.returncode == 0:
             emulator_dir = os.path.join(os.path.dirname(__file__), "..", "emulator")
             bin_relpath = os.path.relpath(output_name, start=emulator_dir)
+            print(bin_relpath)
             subprocess.run(
                 [sys.executable,
                  os.path.join(emulator_dir, "bvm.py"),

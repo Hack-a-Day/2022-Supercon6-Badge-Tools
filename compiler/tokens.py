@@ -1,5 +1,6 @@
 # Intermediate representation
 
+import os
 from typing import Optional
 
 import variables
@@ -145,7 +146,67 @@ def temp_variable_from_value(src: str, scope: variables.Scope) -> tuple[variable
         inst = [f"mov {dest_reg}, {value} ; temp_{value} = {value}"]
         return dest_var, inst
     except:
-        raise 
+        raise
+
+class If(Token):
+    """Start of an if block"""
+
+    def process(self, scope: variables.Scope) -> None:
+        word_tokens = self.source_value.split(" ")
+        left = word_tokens[0].strip()
+        comparator = word_tokens[1].strip()
+        right = word_tokens[2].strip()
+
+        # Compare the left and right values
+        if variables.Nibble.can_be_nibble(left) and variables.Nibble.can_be_nibble(right):
+            # Comparing two int literals, move one to a variable before comparing
+            self.instructions.append(f"mov r0, {left} ; R0 = {left} for compare")
+            self.instructions.append(f"cp r0, {right} ; Compare {left} and {right}")
+        elif variables.Nibble.can_be_nibble(left) and not variables.Nibble.can_be_nibble(right):
+            # Comparing int literal and variable, move var to r0 then compare
+            right_var = scope[right]
+            self.instructions.append(f"mov r0, {right_var.get_register()} ; R0 = {right} for compare")
+            self.instructions.append(f"cp r0, {left} ; Compare {left} and {right}")
+        elif (not variables.Nibble.can_be_nibble(left)) and variables.Nibble.can_be_nibble(right):
+            # Comparing variable and int literal, move variable to r0 then compare
+            left_var = scope[left]
+            self.instructions.append(f"mov r0, {left_var.get_register()} ; R0 = {left} for compare")
+            self.instructions.append(f"cp r0, {right} ; Compare {left} and {right}")
+        elif left in scope and right in scope:
+            # Comparing two variables, subtract then put result in r0, compare to 0
+            left_var = scope[left]
+            right_var = scope[right]
+            self.instructions.append(f"mov r0, {left_var.get_register()} ; Move {left} to R0")
+            self.instructions.append(f"sub r0, {right_var.get_register()} ; Subtract {left} and {right}")
+            self.instructions.append(f"cp r0, 0 ; compare difference with 0 to see if {left} and {right} are the same")
+        else:
+            raise KeyError
+        
+        # Make comparison ==, !=, or >=
+        if comparator == "==":
+            self.instructions.append(f"skip z, 1 ; skip next goto if values are ==")
+        elif comparator == "!=":
+            self.instructions.append(f"skip nz, 1 ; skip next goto if values are !=")
+        elif comparator == ">=":
+            self.instructions.append(f"skip c, 1 ; skip next goto if {left} >= {right}")
+
+        # Jump to bottom of if-block
+        filename = os.path.basename(self.file_source)
+        if_name = f"if_{filename}_{self.line_source}"
+        self.instructions.append(f"goto end{if_name}\n")
+
+        scope.push(if_block=if_name)
+
+
+class EndIf(Token):
+    """End of an if block definition"""
+
+    def __init__(self, file_source, line_source) -> None:
+        super().__init__(file_source, line_source, "")
+
+    def process(self, scope: variables.Scope) -> None:
+        if_name = scope.pop(pop_if=True)
+        self.instructions.append(f"end{if_name}:\n\n")
 
 
 class FunctionDefine(Token):

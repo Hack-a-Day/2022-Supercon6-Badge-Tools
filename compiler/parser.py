@@ -30,9 +30,16 @@ def parse(filename):
                 parsed_tokens.append(tokens.Noop(filename, line_num))
                 line_parsed = True
             # Create a variable
-            if "=" in line_stripped:
-                expression = line_stripped.lstrip("var ")
+            if " = " in line_stripped:
+                expression = line_stripped.lstrip("var ").strip()
                 parsed_tokens.append(tokens.VariableAssign(filename, line_num, expression))
+                line_parsed = True
+            if line_stripped.startswith("if"):
+                expression = line_stripped.lstrip("if").strip()
+                parsed_tokens.append(tokens.If(filename, line_num, expression))
+                line_parsed = True
+            if line_stripped == "endif":
+                parsed_tokens.append(tokens.EndIf(filename, line_num))
                 line_parsed = True
 
             # Comments

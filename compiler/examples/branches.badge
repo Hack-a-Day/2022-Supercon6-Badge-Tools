@@ -1,0 +1,15 @@
+# Demonstrate branches and loops
+x = 1
+y = 0
+
+if x == 1
+    y = 1
+endif
+
+if 2 != y
+    y = 2
+endif
+
+if x >= y
+    y = 3
+endif
