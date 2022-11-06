@@ -3,4 +3,6 @@ foo = 1
 bar = 2
 baz = 3
 foo = bar
-foo = baz
+bar = baz + 2
+#baz = foo + 5
+#foo = bar + baz

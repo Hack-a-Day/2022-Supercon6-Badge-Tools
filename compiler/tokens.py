@@ -70,17 +70,52 @@ class VariableAssign(Token):
         # Check if source is another variable
         if src_raw in scope:
             src = scope[src_raw].get_register()
-            self.instructions.append(f"mov {dest}, {src}\n")
+            self.instructions.append(f"mov {dest}, {src} ; {var_name} = {src_raw}\n")
         else:
             # Try to make a literal
             try:
                 src = variables.Nibble(src_raw).value
-                self.instructions.append(f"mov {dest}, {src}\n")
+                self.instructions.append(f"mov {dest}, {src} ; {var_name} = {src_raw}\n")
             except ValueError:
                 # Not a literal, process the more complicated expression
-                self.instructions.extend(process_expression(src_raw, scope))
+                temp_var, instrs = process_expression(src_raw.split(" "), scope)
+                self.instructions.extend(instrs)
+                self.instructions.append(f"mov {dest}, {temp_var.get_register()} ; from {src_raw}\n")
 
 
-def process_expression(src_raw: str, scope: dict) -> list:
+def process_expression(src_tokens: list, scope: dict) -> tuple[variables.Variable, list]:
+    """Process an expression of multiple math operations"""
+    instructions = []
 
-    return []
+    # Get operators
+    left_val = src_tokens[0]
+    operator = src_tokens[1]
+    right_val = src_tokens[2]
+    
+    left_var, extra_instrs = variable_from_value(left_val, scope)
+    instructions.extend(extra_instrs)
+    right_var, extra_instrs = variable_from_value(right_val, scope)
+    instructions.extend(extra_instrs)
+
+    if operator == "+":
+        instructions.append(f"add {left_var.get_register()}, {right_var.get_register()} ; {left_var.name} += {right_var.name}")
+
+    return left_var, instructions
+
+
+def variable_from_value(src: str, scope: dict) -> tuple[variables.Variable, list]:
+    """Get a variable with a value (variable or literal) stored in it
+    and the instruction to get the value into that register if necessary"""
+    if src in scope:
+        # Existing variable
+        return scope[src], []
+    try:
+        # int literal value
+        value = variables.Nibble(src).value
+        dest_var = variables.Variable(f"temp_{value}")
+        scope[dest_var.name] = dest_var
+        dest_reg = dest_var.get_register()
+        inst = [f"mov {dest_reg}, {value} ; temp_{value} = {value}\n"]
+        return dest_var, inst
+    except:
+        raise 
