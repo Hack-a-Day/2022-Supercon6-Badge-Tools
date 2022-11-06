@@ -1,15 +1,49 @@
 # Demonstrate branches and loops
-x = 1
+x = 5
 y = 0
+z = 0
 
-if x == 1
+if x == 5
     y = 1
 endif
 
-if 2 != y
+noop
+noop
+noop
+noop
+noop
+noop
+
+
+if x == 4
     y = 2
 endif
 
-if x >= y
+noop
+noop
+noop
+noop
+noop
+
+if 2 != y
     y = 3
 endif
+
+noop
+noop
+noop
+noop
+noop
+
+
+if x >= y
+    y = 4
+endif
+
+noop
+noop
+noop
+noop
+noop
+noop
+noop

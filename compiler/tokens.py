@@ -53,7 +53,7 @@ class Noop(Token):
         super().__init__(file_source, line_source, "<noop>")
 
     def to_asm(self) -> str:
-        return "jr 0\n"
+        return "mov r0, r0\n"
 
 
 class VariableAssign(Token):
@@ -184,11 +184,11 @@ class If(Token):
         
         # Make comparison ==, !=, or >=
         if comparator == "==":
-            self.instructions.append(f"skip z, 1 ; skip next goto if values are ==")
+            self.instructions.append(f"skip z, 2 ; skip next goto if values are ==")
         elif comparator == "!=":
-            self.instructions.append(f"skip nz, 1 ; skip next goto if values are !=")
+            self.instructions.append(f"skip nz, 2 ; skip next goto if values are !=")
         elif comparator == ">=":
-            self.instructions.append(f"skip c, 1 ; skip next goto if {left} >= {right}")
+            self.instructions.append(f"skip c, 2 ; skip next goto if {left} >= {right}")
 
         # Jump to bottom of if-block
         filename = os.path.basename(self.file_source)
