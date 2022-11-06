@@ -14,7 +14,7 @@ class Badge():
         self.clock = 0b0
         self.oldTime = timer()
         self.newTime = timer()
-        self.speed = 2 # Hz
+        self.speed = 250e3 # Hz
         self.progMem = []
         #self.pc = 0
         self.acc = [
@@ -51,7 +51,6 @@ class Badge():
     
 
     def initMemory(self):
-        self.cpu.ram[0xf1] = 14 # Set initial clock speed to 1 Hz
         self.cpu.ram[0xff] = randint(0, 16) # Set random value at SFRFF
 
 
