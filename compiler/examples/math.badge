@@ -20,3 +20,6 @@ foo = bar + baz + foo
 
 # bar = foo - baz
 bar = foo - baz
+
+# baz = bar ^ 5
+baz = bar ^ 5

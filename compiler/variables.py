@@ -8,6 +8,7 @@ class Variable:
     def __init__(self, name: str) -> None:
         self.name: str = name
         self.register: Register = RegisterPool.assign()
+        # print(f"{name}: {self.register}")
 
     def drop(self) -> None:
         RegisterPool.free(self.register)

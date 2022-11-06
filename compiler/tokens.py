@@ -106,14 +106,14 @@ def process_expression(src_tokens: list, scope: dict) -> tuple[variables.Variabl
     if operator == "+":
         instructions.append(f"add {left_var.get_register()}, {right_var.get_register()} ; {left_var.name} += {right_var.name}")
     elif operator == "-":
-        instructions.append(f"sub {left_var.get_register()}, {right_var.get_register()} ; {left_var.name} += {right_var.name}")
+        instructions.append(f"sub {left_var.get_register()}, {right_var.get_register()} ; {left_var.name} -= {right_var.name}")
     elif operator == "|":
-        instructions.append(f"or {left_var.get_register()}, {right_var.get_register()} ; {left_var.name} += {right_var.name}")
+        instructions.append(f"or {left_var.get_register()}, {right_var.get_register()} ; {left_var.name} |= {right_var.name}")
     elif operator == "&":
-        instructions.append(f"and {left_var.get_register()}, {right_var.get_register()} ; {left_var.name} += {right_var.name}")
+        instructions.append(f"and {left_var.get_register()}, {right_var.get_register()} ; {left_var.name} &= {right_var.name}")
     elif operator == "^":
-        instructions.append(f"xor {left_var.get_register()}, {right_var.get_register()} ; {left_var.name} += {right_var.name}")
-        right_var.drop()  # Done with this temporary variable
+        instructions.append(f"xor {left_var.get_register()}, {right_var.get_register()} ; {left_var.name} ^= {right_var.name}")
+    right_var.drop()  # Done with this temporary variable
 
     if len(src_tokens) > 3:
         new_tokens = [left_var.name] + src_tokens[3:]
