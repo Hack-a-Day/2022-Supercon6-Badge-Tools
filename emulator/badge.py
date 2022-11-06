@@ -73,7 +73,13 @@ class Badge():
         return
 
     def step(self):
-        instruction = parse(self.progMem[self.cpu.getPC()])
+        raw_instr = None
+        try:
+            raw_instr = self.progMem[self.cpu.getPC()]
+        except IndexError:
+            print('End of program!')
+            raise EOFError
+        instruction = parse(raw_instr)
         # print(instruction)
         print (f'{instruction["op"]}: {instruction["args"]}')
         self.cpu.step()
