@@ -1,6 +1,6 @@
 mov r0, 2
 mov [0xf0], r0 ; set page
-mov r0, 0b0100
+mov r0, 0b0100 ; start writing pixels into ram
 mov [48], r0
 mov r0, 0b1110
 mov [49], r0
@@ -27,7 +27,7 @@ mov r0, 0b0010
 mov [60], r0
 mov [62], r0
 mov [63], r0 ; end of left side
-mov r0, 0b0100
+mov r0, 0b0100 ; beginning of right side
 mov [32], r0
 mov r0, 0b1110
 mov [33], r0
@@ -51,4 +51,4 @@ mov [44], r0
 mov [45], r0
 mov [46], r0
 mov [47], r0
-jr -1
+jr -1 ; loop on this instruction forever so the pc doesn't overflow
