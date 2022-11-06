@@ -86,6 +86,8 @@ DF0Top      EQU 0b0101
 DF0Bottom   EQU 0b0010
 DF1Top      EQU 0b0010
 DF1Bottom   EQU 0b0101
+DDieTop     EQU 0b0101
+DDieBottom  EQU 0b0101
 
 ; lateral demon movement is based on a few patterns:
 ;   0 straight down (0)
@@ -429,7 +431,43 @@ MOVE_SHOT:
     skip nz, 1
       ret r0, 0
     dec r0
-    ; FIXME - check for collision with demon
+    mov [ShotRow], r0
+    cp r0, 15       ; don't check for collision if moving into 15
+    skip nz, 1
+      ret r0, 0
+    mov r1, r0      ; ShotRow in r1
+    mov r0, [ShotPos]
+    mov r2, r0      ; ShotPos in r2
+
+CHECK_D1:
+    mov r0, [D1Row]
+    sub r0, r1
+    skip z, 1
+      jr CHECK_D2
+    mov r0, [D1Pos]
+    sub r0, r2
+    skip z, 1
+      jr CHECK_D2
+    mov r0, PatDie
+    mov [D1Pattern], r0
+    gosub INC_SCORE
+    mov r0, 15
+    mov [ShotRow], r0
+    ret r0, 0
+
+CHECK_D2:
+    mov r0, [D2Row]
+    sub r0, r1
+    skip z, 1
+      ret r0, 0
+    mov r0, [D2Pos]
+    sub r0, r2
+    skip z, 1
+      ret r0, 0
+    mov r0, PatDie
+    mov [D2Pattern], r0
+    gosub INC_SCORE
+    mov r0, 15
     mov [ShotRow], r0
     ret r0, 0
 
@@ -572,29 +610,59 @@ DRAW_DEMON:         ; have demon row in r5, position in r6
     bit r0, 1
     skip z, 1 
       mov r1, DF1Bottom
-    mov r0, r6      ; load shift amount
+    mov r0, r6
     gosub SHIFT_LEFT
     gosub DRAW_ROW
 
     ret r0, 0
 
-DRAW_DEMONS:        ; draw demons in 
+DRAW_DEAD_DEMON:
+    mov r0, r5      ; skip drawing if in row 15
+    cp r0, 15
+    skip nz, 1
+      ret r0, 0
+
+    mov r1, DDieTop
+    mov r0, r6
+    gosub SHIFT_LEFT
+    gosub DRAW_ROW
+
+    inc r5
+    mov r1, DDieBottom
+    mov r0, r6
+    gosub SHIFT_LEFT
+    gosub DRAW_ROW
+
+    ret r0, 0
+
+DRAW_DEMONS:        ; draw both demons with lifetime checking
+DRAW_DEMON_1:
     mov r0, [D1Row]
     mov r5, r0
     mov r0, [D1Pos]
-    cp r0, 15       ; don't draw if row is 15
+    mov r6, r0
+    mov r0, [D1Pattern]
+    cp r0, PatDie
     skip z, 3
-      mov r6, r0
       gosub DRAW_DEMON
+      jr DRAW_DEMON_2
+    gosub DRAW_DEAD_DEMON
+    mov r0, 15
+    mov [D1Row], r0
     
+DRAW_DEMON_2:
     mov r0, [D2Row]
     mov r5, r0
     mov r0, [D2Pos]
-    cp r0, 15       ; don't draw is row is 15
+    mov r6, r0
+    mov r0, [D2Pattern]
+    cp r0, PatDie
     skip z, 3
-      mov r6, r0
       gosub DRAW_DEMON
-
+      ret r0, 0
+    gosub DRAW_DEAD_DEMON
+    mov r0, 15
+    mov [D2Row], r0
     ret r0, 0
 
 DRAW_BASE:
