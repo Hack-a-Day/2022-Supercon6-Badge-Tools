@@ -2,7 +2,15 @@
 foo = 1
 bar = 2
 baz = 3
+
+# foo = bar
 foo = bar
+
+# bar = baz + 2
 bar = baz + 2
-#baz = foo + 5
+
+# baz = 5 + foo
+baz = 5 + foo
+
 #foo = bar + baz
+foo = bar + baz

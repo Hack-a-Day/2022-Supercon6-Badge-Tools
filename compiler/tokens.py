@@ -80,7 +80,8 @@ class VariableAssign(Token):
                 # Not a literal, process the more complicated expression
                 temp_var, instrs = process_expression(src_raw.split(" "), scope)
                 self.instructions.extend(instrs)
-                self.instructions.append(f"mov {dest}, {temp_var.get_register()} ; from {src_raw}\n")
+                self.instructions.append(f"mov {dest}, {temp_var.get_register()} ; {variable.name} = {temp_var.name}\n")
+                temp_var.drop()
 
 
 def process_expression(src_tokens: list, scope: dict) -> tuple[variables.Variable, list]:
@@ -92,28 +93,31 @@ def process_expression(src_tokens: list, scope: dict) -> tuple[variables.Variabl
     operator = src_tokens[1]
     right_val = src_tokens[2]
     
-    left_var, extra_instrs = variable_from_value(left_val, scope)
+    left_var, extra_instrs = temp_variable_from_value(left_val, scope)
     instructions.extend(extra_instrs)
-    right_var, extra_instrs = variable_from_value(right_val, scope)
+    right_var, extra_instrs = temp_variable_from_value(right_val, scope)
     instructions.extend(extra_instrs)
 
     if operator == "+":
         instructions.append(f"add {left_var.get_register()}, {right_var.get_register()} ; {left_var.name} += {right_var.name}")
+        right_var.drop()  # Done with this temporary variable
 
     return left_var, instructions
 
 
-def variable_from_value(src: str, scope: dict) -> tuple[variables.Variable, list]:
+def temp_variable_from_value(src: str, scope: dict) -> tuple[variables.Variable, list]:
     """Get a variable with a value (variable or literal) stored in it
     and the instruction to get the value into that register if necessary"""
     if src in scope:
         # Existing variable
-        return scope[src], []
+        src_var = scope[src]
+        temp_var = variables.Variable(f"{src}_copy")
+        inst = [f"mov {temp_var.get_register()}, {src_var.get_register()} ; {temp_var.name} = {src_var.name}\n"]
+        return temp_var, inst
     try:
         # int literal value
         value = variables.Nibble(src).value
         dest_var = variables.Variable(f"temp_{value}")
-        scope[dest_var.name] = dest_var
         dest_reg = dest_var.get_register()
         inst = [f"mov {dest_reg}, {value} ; temp_{value} = {value}\n"]
         return dest_var, inst
