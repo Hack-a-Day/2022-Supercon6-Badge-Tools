@@ -3,7 +3,13 @@
 
 This project aims to provide a vm for the [2022 Hackaday Supercon Badge](https://hackaday.io/project/182568-badge-for-2020-supercon-years-of-lockdown) to aid in programming and debugging. It is not fully tested and is a work-in-progress.
 
+## Installation
+
 Python 3.6 (or greater) is required.
+
+pillow is required: pip install pillow
+
+## Running
 
 Run the program with `python bvm.py [input.bin]`.
 

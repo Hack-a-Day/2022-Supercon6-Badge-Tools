@@ -434,7 +434,7 @@ def parse_line(instring):
                             raise ParserError("E::Wrong number of items in EQU statement")
                     #Found ; in right place, no need to parse more
                     break
-                raise ParserError("E::Unexpected opening semicolon (;) after " % str(previous))
+                raise ParserError("E::Unexpected opening semicolon (;) after %s" % str(previous))
 
             elif e in syntax.modifying_keywords:
                 if previous in Opcodes().token_preceders:
