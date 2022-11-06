@@ -44,7 +44,7 @@ Dimmer      EQU 0xfe
 Random      EQU 0xff
 
 ; user equs
-PlatformRows EQU 3
+PlatformRows EQU 4
 
 ; init
 init: 
@@ -58,7 +58,7 @@ mov r0, F_1_kHz; slow down a bit
 mov [Clock], r0
 
 mov r6, 3
-mov r7, 10
+mov r7, 13
 mov r8, PlatformRows
 mov r5, r8
 mov r9, r6 ; r9 = last position
@@ -183,6 +183,30 @@ MOV R1, 0
 MOV R2, 0   
 RET R0, 0
 
+calculate_pos:
+EXR 6
+MOV R5, R6
+MOV R4, 0b1000
+MOV R3, 0b0000
+mov r0, r5
+cp r0, 0
+skip nz, 1
+jr cp_xpos_z
+cp_shiftloop:
+AND R0, 0
+RRC R4
+RRC R3
+DSZ R5
+JR cp_shiftloop
+cp_xpos_z:
+MOV R0, R4
+MOV [1:0],R0 ; write left-side to [1:0]
+INC R2
+MOV R0, R3
+MOV [1:1],R0 ; write right-side to [1:1]
+EXR 6
+RET R0, 0
+
 draw_char:
 EXR 6
 MOV R5, R6
@@ -284,10 +308,43 @@ SKIP NZ, 1
 JR collision
 
 no_collision:
+MOV R0,R7
+CP  R0, 13
+SKIP Z, 1
+INC R7
 EXR 6
 RET R0, 0
 
 collision:
 DEC R7
+MOV R0, R7
+CP R0, 15 ; wrapped, so dead
+SKIP NZ, 1
+JR dead
 EXR 6
 RET R0, 0
+
+dead:
+mov r8, 15
+d_loop:
+mov r0, 15 ; set to full bar
+mov r1, 15 
+gosub set_bottom_row
+gosub shift_screen_up
+dsz r8
+JR d_loop
+d_check_button:
+bit r3, 2
+skip z, 1
+JR d_check_button
+; clear screen before restarting
+mov r8, 15
+d_clearscreen_loop:
+mov r0, 00 ; set to empty
+mov r1, 00
+gosub set_bottom_row
+gosub shift_screen_up
+dsz r8
+JR d_clearscreen_loop
+
+GOTO init
