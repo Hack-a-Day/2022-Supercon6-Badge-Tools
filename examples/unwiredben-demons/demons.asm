@@ -304,6 +304,16 @@ WAIT_FOR_SYNC:
       jr WAIT_FOR_SYNC
     ret r0, 0
 
+GET_CONSTRAINED_RANDOM: ; r1 has closed end of random range
+                        ; ex. r1=4 means 0..4 is output
+    mov r0, [Random]
+    mov r2, r1
+    sub r2, r0
+    skip c, 1
+      jr GET_CONSTRAINED_RANDOM
+    mov r1, r0
+    ret r0, 0
+
 ;
 ; General drawing functions
 ;
@@ -345,15 +355,6 @@ DRAW_ROW:           ; draw data in R2:R1
 ;
 ; Game logic
 ;
-
-GET_RANDOM_POS:     ; returns in r1
-    mov r0, [Random]
-    bclr r0, 3
-    cp r0, 6
-    skip nc, 1
-      jr GET_RANDOM_POS
-    mov r1, r0
-    ret r0, 0
 
 CHECK_LIVES:
     mov r0, [Lives]
@@ -436,9 +437,9 @@ DEC_POSITION:       ; r1 has pos in/out
     ret r0, 0
 
 MOVE_DEMONS_Y:
-    mov r8, 8
+    mov r8, MID D1Row
     gosub MOVE_DEMON_Y
-    mov r8, 9
+    mov r8, MID D2Row
     gosub MOVE_DEMON_Y
     ret r0, 0
 
@@ -457,7 +458,7 @@ MOVE_DEMON_Y:       ; r8 has demon pointer
     cp r0, 15       ; don't process hidden demons
     skip nz, 1
       ret r0, 0
-    cp r0, 11       ; if we're in row 11, remove a life
+    cp r0, 10       ; if we're in row 10, remove a life
     skip z, 1
       jr DROP_DEMON
     ; demon dies at the bottom too
@@ -524,6 +525,51 @@ ADD_DEMON_IF_NEEDED:
     ; if D1 or D2 is on row 15
     ; then look if the other is
     ; past row 3.
+ADD_CHK_D1:
+    mov r0, [D1Row]
+    cp r0, 15           ; if this bird isn't visible
+    skip z, 1
+      jr ADD_CHK_D2
+    mov r0, [D2Row]     ; and other bird is past row 3
+    cp r0, 3
+    skip c, 1
+      ret r0, 0         ; if we can't add, exit
+    mov r8, MID D1Row
+    jr GENERATE_RANDOM_DEMON
+
+ADD_CHK_D2:
+    mov r0, [D2Row]
+    cp r0, 15           ; if this bird isn't visible
+    skip z, 1
+      ret r0, 0
+    mov r0, [D1Row]     ; and other bird is past row 3
+    cp r0, 3
+    skip c, 1
+      ret r0, 0
+    mov r8, MID D2Row
+    ; fallthrough to GENERATE_RANDOM_DEMON
+
+GENERATE_RANDOM_DEMON:  ; demon pointer in r8
+    mov r1, 5
+    gosub GET_CONSTRAINED_RANDOM
+    mov r0, r1
+    mov r1, LOW D1Pos
+    mov [r8:r1], r0
+
+    mov r1, 2
+    gosub GET_CONSTRAINED_RANDOM
+    mov r0, r1
+    mov r1, LOW D1Pattern
+    mov [r8:r1], r0
+
+    mov r0, [Random]
+    mov r1, LOW D1PatIdx
+    mov [r8:r1], r0
+
+    mov r0, 0
+    mov r1, LOW D1Row
+    mov [r8:r1], r0
+
     ret r0, 0
 
 INC_SCORE:
@@ -599,19 +645,9 @@ SETUP_ATTRACT_STATE:
     ret r0, 0
 
 SETUP_ACTIVE_STATE:
-    mov r0, 0               ; demon 1 starts at top
+    mov r0, 15          ; start with no demons on screen
     mov [D1Row], r0
-    gosub GET_RANDOM_POS    ; in a random position
-    mov r0, r1
-    mov [D1Pos], r0
-
-    mov r0, PatJitter
-    mov [D1Pattern], r0
-    mov r0, [Random]
-    mov [D1PatIdx], r0
-
-    mov r0, 15              ; demon 2 is offscreen
-    mov [D2Row], r0         ; until space clears up
+    mov [D2Row], r0
 
     mov r0, 0
     mov [ScoreLow], r0
