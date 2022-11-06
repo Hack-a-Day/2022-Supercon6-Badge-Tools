@@ -61,21 +61,26 @@ mov r6, 3
 mov r7, 10
 mov r8, PlatformRows
 mov r5, r8
+mov r9, r6 ; r9 = last position
 main:
 gosub check_keys
+gosub erase_char
+gosub draw_char
+
+; generate next row
 gosub generate_row
 mov r0, r1 ; set_bottom_row uses r0/r1 as the nibbles to display
 mov r1, r2
 gosub set_bottom_row
+
 gosub shift_screen_up
-;gosub draw_char
-inc r6
-mov r0, r5
+
+mov r9, r6 ; update last x-pos
+mov r0, r5 ; r5 = how often to generate new row
 cp r0, 0
 skip z, 1
 jr main
 mov r5, r8
-mov r6, 3
 jr main
 
 check_keys:
@@ -103,11 +108,17 @@ mov r8, r0
 ret r0, 0
 
 ck_right:
-inc r8
+mov r0, r6
+cp r0, 7
+skip z, 1
+inc r6
 ret r0, 0
 
 ck_left:
-dec r8
+mov r0, r6
+cp r0, 0
+skip z, 1
+dec r6
 ret r0, 0
 
 set_bottom_row:
@@ -171,23 +182,57 @@ MOV R2, 0
 RET R0, 0
 
 draw_char:
-EXR 5
+EXR 6
 MOV R5, R6
 MOV R1, 4
 MOV R2, 5
 MOV R4, 0b1000
 MOV R3, 0b0000
+mov r0, r5
+cp r0, 0
+skip nz, 1
+jr dc_xpos_z
 dc_shiftloop:
 AND R0, 0
 RRC R4
 RRC R3
 DSZ R5
 JR dc_shiftloop
+dc_xpos_z:
 MOV R0,[R2:R7]
 OR R0,R4
 MOV [R2:R7],R0
 MOV R0,[R1:R7]
 OR R0,R3
 MOV [R1:R7],R0
-EXR 5
+EXR 6
+RET R0, 0
+
+erase_char:
+EXR 6
+MOV R5, R9
+MOV R1, 4
+MOV R2, 5
+MOV R4, 0b1000
+MOV R3, 0b0000
+mov r0, r5
+cp r0, 0
+skip nz, 1
+jr ec_xpos_z
+ec_shiftloop:
+AND R0, 0
+RRC R4
+RRC R3
+DSZ R5
+JR ec_shiftloop
+ec_xpos_z:
+MOV R5,R7
+DEC R5
+MOV R0,[R2:R5]
+XOR R0,R4
+MOV [R2:R5],R0
+MOV R0,[R1:R5]
+XOR R0,R3
+MOV [R1:R5],R0
+EXR 6
 RET R0, 0
