@@ -338,10 +338,11 @@ class CPU:
     def EXR(self, args):
         n = args['n']
         for i in range(0, (n-1)%16+1):
+            p14_addr = 0xE << 4 | i
             r = self.ram[i]
-            p = self.ram[0xE + r]
+            p = self.ram[p14_addr]
             self.ram[i] = p
-            self.ram[0xE + r] = r
+            self.ram[p14_addr] = r
     
     def BIT(self, args):
         r = self.ram[args['g']] # doesn't handle RIN, but emu anyway
