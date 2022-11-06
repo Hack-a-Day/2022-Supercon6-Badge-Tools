@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Cheap, Brute Force, Static Bitmaps</title>
+<style>
+#thing > div {
+	background-color: black;
+}
+#thing {
+	display: grid;
+	grid-template-columns: repeat(8, 50px);
+	grid-template-rows: repeat(16, 50px);
+	grid-column-gap: 8px;
+	grid-row-gap: 8px; 
+}
+#thing > div.active {
+	background-color: red;
+}
+button {
+	width: 100px;
+	height: 50px;
+}
+textarea {
+	clear: both;
+	width: 80%;
+	margin-left: 10%;
+	height: 64pc;
+}
+</style>
+</head> 
+<body>
+
+	<h1>Cheap, Brute Force, Static Bitmaps</h1>
+	<div id="thing">
+	</div>
+
+	<div>
+		<p>Low Page: <input type="text" id="low" value="2" /></p>
+		<p>High Page: <input type="text" id="high" value=3 /></p>
+		<button id="do">Go</button>
+	</div>
+	<h2>Copy and Paste This</h2>
+	<textarea id="output"></textarea>
+	
+</body>
+
+<script>
+
+
+
+	let box = document.querySelector("#thing");
+
+	for (let x = 0 ; x < 16 ; x++) {
+		for (let y = 8 ; y > 0 ; y--) {
+			let newd = document.createElement("div");
+
+			newd.id = `r${x}b${y}`;
+			newd.addEventListener('click', function(evt) {
+				newd.classList.toggle("active");
+			});
+			box.append(newd);
+
+		}
+	}
+
+	document.getElementById("do").addEventListener("click", function() {
+		let low = document.getElementById("low").value;
+		let high = document.getElementById("high").value;
+		let output = document.getElementById("output");
+		output.value = "";
+
+		for (let x = 0 ; x < 16 ; x++) {
+			let nib2 = nib1 = "0b";
+
+			for (let y = 4 ; y > 0 ; y--) {
+				//let cl = `r${x}b${y}`;
+				//let pixel = document.getElementById(cl);
+				//nib1 += (pixel.classList.contains("active")) ? 1 : 0;
+
+				nib1 += (document.getElementById(`r${x}b${y}`).classList.contains("active")) ? 1:0;
+				
+
+			}
+
+			for (let y = 8 ; y > 4 ; y--) {
+				nib2 += (document.getElementById(`r${x}b${y}`).classList.contains("active")) ? 1:0;
+			}
+
+			output.value += `mov r0,${nib1}\n`;
+			output.value += `mov [${low}:${x}],r0\n`;
+			output.value += `mov r0,${nib2}\n`;
+			output.value += `mov [${high}:${x}],r0\n`;
+
+		}
+
+
+	});
+
+
+
+
+</script>
+</html>
