@@ -62,9 +62,12 @@ mov r7, 10
 mov r8, PlatformRows
 mov r5, r8
 mov r9, r6 ; r9 = last position
+
 main:
 gosub check_keys
 gosub erase_char
+mov r9, r6 ; update last x-pos
+gosub update_char
 gosub draw_char
 
 ; generate next row
@@ -75,7 +78,6 @@ gosub set_bottom_row
 
 gosub shift_screen_up
 
-mov r9, r6 ; update last x-pos
 mov r0, r5 ; r5 = how often to generate new row
 cp r0, 0
 skip z, 1
@@ -234,5 +236,58 @@ MOV [R2:R5],R0
 MOV R0,[R1:R5]
 XOR R0,R3
 MOV [R1:R5],R0
+EXR 6
+RET R0, 0
+
+update_char:
+EXR 6
+MOV R5, R6
+MOV R1, 4
+MOV R2, 5
+MOV R4, 0b1000
+MOV R3, 0b0000
+mov r0, r5
+cp r0, 0
+skip nz, 1
+jr uc_xpos_z
+uc_shiftloop:
+AND R0, 0
+RRC R4
+RRC R3
+DSZ R5
+JR uc_shiftloop
+uc_xpos_z:
+MOV R5,R7
+INC R5
+
+; get left side, and invert
+MOV R0,R4
+CP R0, 0
+SKIP NZ, 1
+JR uc_testright
+MOV R0,[R2:R5] ;0000
+XOR R0, 0xF    ;1111
+AND R0,R4      ;0100 = 0000 = z = collision
+SKIP NZ, 1    
+JR collision
+
+uc_testright:
+; get right side and invert
+MOV R0,R3
+CP R0, 0
+SKIP NZ, 1
+JR no_collision
+MOV R0,[R1:R5]
+XOR R0, 0xF
+AND R0,R3
+SKIP NZ, 1
+JR collision
+
+no_collision:
+EXR 6
+RET R0, 0
+
+collision:
+DEC R7
 EXR 6
 RET R0, 0
