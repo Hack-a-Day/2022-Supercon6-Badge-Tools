@@ -48,6 +48,20 @@ KeyStatus   EQU 0xfc
   LastPress EQU 1
   JustPress EQU 0       ; cleared after read
 KeyReg      EQU 0xfd
+  Btn_Mode  EQU 0
+  Btn_Opc_8 EQU 1
+  Btn_Opc_4 EQU 2
+  Btn_Opc_2 EQU 3
+  Btn_Opc_1 EQU 4
+  Btn_X_8   EQU 5
+  Btn_X_4   EQU 6
+  Btn_X_2   EQU 7
+  Btn_X_1   EQU 8
+  Btn_Y_8   EQU 9
+  Btn_Y_4   EQU 10
+  Btn_Y_2   EQU 11
+  Btn_Y_1   EQU 12
+  Btn_DtIn  EQU 13
 Dimmer      EQU 0xfe
-Random      EQU 0xff
+Random      EQU 0xff 
 ```
