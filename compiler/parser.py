@@ -21,19 +21,21 @@ def parse(filename):
                 # parsed_tokens.append(tokens.Empty(filename, line_num))
                 continue
 
-            # Comments
+            # Split comments off line
             fragments = line_stripped.split("#", 1)
+            # Read first part of line
             line_stripped = fragments[0].strip()
             # No-op. Advance PC, but do nothing else
             if line_stripped == "noop":
                 parsed_tokens.append(tokens.Noop(filename, line_num))
                 line_parsed = True
             # Create a variable
-            if line_stripped.startswith("var"):
+            if "=" in line_stripped:
                 expression = line_stripped.lstrip("var ")
                 parsed_tokens.append(tokens.VariableAssign(filename, line_num, expression))
                 line_parsed = True
 
+            # Comments
             if len(fragments) > 1:
                 comment = fragments[1].strip()
                 parsed_tokens.append(tokens.Comment(filename, line_num, comment))
