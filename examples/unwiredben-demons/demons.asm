@@ -128,37 +128,40 @@ ScoreEndRow     EQU 9
 ;
 ; page 2/3 frame A
 ; page 4/5 frame B
-; page 6   demon state storage
-; page 7   game state
+; page 6   game state
+; page 8   demon 1 state
+; page 9   demon 2 state
 
-D1Row       EQU 0x60    ; 0-14, 15 means don't draw
-D1Pos       EQU 0x61    ; 0-5
-D1Pattern   EQU 0x62    ; 0-4
+ScoreLow    EQU 0x60    ; 0-9 BCD
+ScoreHigh   EQU 0x61    ; 0-9 BCD
+FrameNum    EQU 0x62
+BasePos     EQU 0x63    ; 0-5
+ShotPos     EQU 0x64
+ShotRow     EQU 0x65    ; 0-14, 15 means don't draw
+Lives       EQU 0x66
+  NumLives  EQU 4
+GameState   EQU 0x67
+  Attract   EQU 0
+  Active    EQU 1
+  ShowScore EQU 2
+GameAnim    EQU 0x68
+  NoAnim    EQU 0
+  WipeUp    EQU 1
+  WipeDown  EQU 2
+
+D1Row       EQU 0x80    ; 0-14, 15 means don't draw
+D1Pos       EQU 0x81    ; 0-5
+D1Pattern   EQU 0x82    ; 0-4
   PatStill  EQU 0       ; stay in same 
   PatWiggle EQU 1       ; wide back and forth
   PatJitter EQU 2       ; tight back and forth
   PatDie    EQU 3
-D1PatIdx    EQU 0x63
-D2Row       EQU 0x64    ; 0-14, 15 means don't draw
-D2Pos       EQU 0x65    ; 0-5
-D2Pattern   EQU 0x66    ; 0-4
-D2PatIdx    EQU 0x67
+D1PatIdx    EQU 0x83
 
-ScoreLow    EQU 0x70    ; 0-9 BCD
-ScoreHigh   EQU 0x71    ; 0-9 BCD
-FrameNum    EQU 0x72
-BasePos     EQU 0x73    ; 0-5
-ShotPos     EQU 0x74
-ShotRow     EQU 0x75    ; 0-14, 15 means don't draw
-Lives       EQU 0x76
-GameState   EQU 0x77
-  Attract   EQU 0
-  Active    EQU 1
-  ShowScore EQU 2
-GameAnim    EQU 0x78
-  NoAnim    EQU 0
-  WipeUp    EQU 1
-  WipeDown  EQU 2
+D2Row       EQU 0x90    ; 0-14, 15 means don't draw
+D2Pos       EQU 0x91    ; 0-5
+D2Pattern   EQU 0x92    ; 0-4
+D2PatIdx    EQU 0x93
 
 ; data locations
 
@@ -170,10 +173,11 @@ WiggleTable EQU 0x600
 ;
 ; R0 accumulator
 ; R1,R2 volatile, may be used as return values
-; R3 left page
-; R4 right page
+; R3 left page (2 or 3)
+; R4 right page (4 or 5)
 ; R5 row
 ; R6,R7 misc parameter
+; R8 active demon (8 or 9)
 
 INIT:
     mov r0, F_100_kHz
@@ -209,8 +213,7 @@ FINISH_ANIM:
 FINISH_MODE:    
     gosub FLIP_PAGES
     gosub CHECK_INPUT
-
-    ; FIXME: move demons and shots with collision detection
+    gosub CHECK_LIVES
 
     mov r0, [FrameNum]  ; increment FrameNum
     inc r0
@@ -243,12 +246,12 @@ ATTRACT_MODE:
 
 ACTIVE_MODE:
     gosub MOVE_SHOT
-    ; gosub MOVE_DEMONS_Y
-    ; gosub ADD_DEMON_IF_NEEDED
     gosub MOVE_DEMONS_X
+    gosub MOVE_DEMONS_Y
+    gosub ADD_DEMON_IF_NEEDED
 
-    gosub DRAW_DEMONS
     gosub DRAW_BASE
+    gosub DRAW_DEMONS
     gosub DRAW_LIVES
     gosub DRAW_SHOT
 
@@ -352,6 +355,13 @@ GET_RANDOM_POS:     ; returns in r1
     mov r1, r0
     ret r0, 0
 
+CHECK_LIVES:
+    mov r0, [Lives]
+    cp r0, 0
+    skip z, 1
+      ret r0, 0
+    goto NEXT_STATE
+
 MOVE_DEMONS_X:
     mov r0, [D1Pos]
     mov r1, r0
@@ -425,6 +435,45 @@ DEC_POSITION:       ; r1 has pos in/out
     mov r1, r0
     ret r0, 0
 
+MOVE_DEMONS_Y:
+    mov r8, 8
+    gosub MOVE_DEMON_Y
+    mov r8, 9
+    gosub MOVE_DEMON_Y
+    ret r0, 0
+
+MOVE_DEMON_Y:       ; r8 has demon pointer
+    mov r0, [Random] ; only move down 1/4 time
+    mov r1, 0b1110   ; so check random to see if
+    and r0, r1       ; first three bits are set
+    cp r0, 0b1110
+    skip z, 1
+      ret r0, 0
+
+    mov r0, LOW D1Row
+    mov r0, [r8:r0]
+    mov r1, r0
+
+    cp r0, 15       ; don't process hidden demons
+    skip nz, 1
+      ret r0, 0
+    cp r0, 11       ; if we're in row 11, remove a life
+    skip z, 1
+      jr DROP_DEMON
+    ; demon dies at the bottom too
+    mov r0, PatDie
+    mov r1, LOW D1Pattern
+    mov [r8:r1], r0
+    gosub DEC_LIVES
+    ret r0, 0
+
+DROP_DEMON:
+    inc r1
+    mov r0, r1
+    mov r1, LOW D1Row
+    mov [r8:r1], r0
+    ret r0, 0
+
 MOVE_SHOT:
     mov r0, [ShotRow]
     cp r0, 15
@@ -471,6 +520,12 @@ CHECK_D2:
     mov [ShotRow], r0
     ret r0, 0
 
+ADD_DEMON_IF_NEEDED:
+    ; if D1 or D2 is on row 15
+    ; then look if the other is
+    ; past row 3.
+    ret r0, 0
+
 INC_SCORE:
     mov r0, [ScoreLow]
     mov r1, r0
@@ -486,8 +541,8 @@ INC_SCORE:
 DEC_LIVES:
     mov r0, [Lives]
     dec r0
-
     mov [Lives], r0
+    ret r0, 0
 
 NEXT_STATE:
     mov r0, [GameState]
@@ -538,6 +593,9 @@ SETUP_ATTRACT_STATE:
     mov r0, 5
     mov [D2PatIdx], r0
 
+    mov r0, NumLives
+    mov [Lives], r0
+
     ret r0, 0
 
 SETUP_ACTIVE_STATE:
@@ -558,7 +616,7 @@ SETUP_ACTIVE_STATE:
     mov r0, 0
     mov [ScoreLow], r0
     mov [ScoreHigh], r0
-    mov r0, 4
+    mov r0, NumLives
     mov [Lives], r0
 
     mov r0, 3
@@ -583,6 +641,8 @@ SETUP_SHOW_SCORE_STATE:
     mov r0, PatStill
     mov [D1Pattern], r0
     mov [D2Pattern], r0
+    mov r0, NumLives
+    mov [Lives], r0
     ret r0, 0
 
 ;
@@ -632,7 +692,6 @@ DRAW_DEAD_DEMON:
     mov r0, r6
     gosub SHIFT_LEFT
     gosub DRAW_ROW
-
     ret r0, 0
 
 DRAW_DEMONS:        ; draw both demons with lifetime checking
@@ -789,6 +848,9 @@ CHECK_INPUT:
     cp r0, Btn_Opc_4        ; DEBUG - next state
     skip nz, 2
         goto NEXT_STATE
+    cp r0, Btn_Opc_2        ; DEBUG - lose life
+    skip nz, 2
+        goto DEC_LIVES
 
     cp r0, Btn_Y_8          ; move left
     skip nz, 1
