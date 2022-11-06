@@ -97,6 +97,13 @@ BaseRow     EQU 12
 
 LivesRow    EQU 15
 
+; Score screen is shown when you lose all your lives
+
+ScoreDemon1Row  EQU 1
+ScoreDemon2Row  EQU 12
+ScoreStartRow   EQU 5
+ScoreEndRow     EQU 9
+
 ; control is via operand keys, 8 is left, 4 is right, 1 is fire
 
 ; RAM layout
@@ -105,11 +112,15 @@ LivesRow    EQU 15
 ; page 4/5 frame B
 ; page 6   data storage
 
-ScoreLow    EQU 0x60    ; 0-99
-ScoreHigh   EQU 0x61
+ScoreLow    EQU 0x60    ; 0-9 BCD
+ScoreHigh   EQU 0x61    ; 0-9 BCD
 D1Row       EQU 0x62    ; 0-10
 D1Pos       EQU 0x63    ; 0-5
 D1Pattern   EQU 0x64    ; 0-4
+  PatStill  EQU 0
+  PatWiggle EQU 1
+  PatDive   EQU 2
+  PatDie    EQU 3
 D2Row       EQU 0x65    ; 0-10
 D2Pos       EQU 0x66    ; 0-5
 D2Pattern   EQU 0x67    ; 0-4
@@ -117,6 +128,18 @@ FrameNum    EQU 0x68
 BasePos     EQU 0x69    ; 0-5
 ShotRow     EQU 0x6A    ; if 15, not displayed
 Lives       EQU 0x6B
+GameState   EQU 0x6C
+  Attract   EQU 0
+  Active    EQU 1
+  ShowScore EQU 2
+GameAnim    EQU 0x6D
+  NoAnim    EQU 0
+  WipeUp    EQU 1
+  WipeDn    EQU 2
+
+; data locations
+
+DigitTable  EQU 0x400
 
 ; REGISTERS
 ;
@@ -128,13 +151,9 @@ Lives       EQU 0x6B
 ; R6,R7 misc parameter
 
 INIT:
-    mov r0, 0
-    mov [ScoreLow], r0
-    mov [ScoreHigh], r0
-    mov [D1Row], r0
-    mov [D1Pos], r0
-    mov [D1Pattern], r0
-    mov [FrameNum], r0
+    ; entering RUN mode clears data memory to 0
+    ; so only need to init variables with a different
+    ; starting state
     mov r0, 1
     mov [D2Pattern], r0
     mov r0, 3
@@ -153,12 +172,13 @@ INIT:
     gosub FLIP_PAGES
 
 LOOP:
+
     mov r0, [D1Row]
     mov r5, r0
     mov r0, [D1Pos]
     mov r6, r0
     gosub DRAW_DEMON
-
+    
     mov r0, [D2Row]
     mov r5, r0
     mov r0, [D2Pos]
@@ -167,8 +187,8 @@ LOOP:
 
     gosub DRAW_BASE
     gosub DRAW_LIVES
-    gosub FLIP_PAGES
 
+    gosub FLIP_PAGES
     gosub CHECK_INPUT
 
     ; FIXME: move demons and shots with collision detection
@@ -192,6 +212,26 @@ SHIFT_LEFT_LOOP:
       add r1, r1
       adc r2, r2
       jr SHIFT_LEFT_LOOP
+    ret r0, 0
+
+SAT_INC_BCD:         ; add 1 to BCD number in r2:r1, saturating at 99
+    inc r1
+    mov r0, r1
+    cp r0, 10
+    skip nz, 2
+      mov r1, 0
+      inc r2
+    mov r0, r2
+    cp r0, 10
+    skip nz, 2
+      mov r1, 9
+      mov r2, 9
+    ret r0, 0
+
+TOGGLE_PANEL:
+    mov r0, [WrFlags]
+    btg r0, LedsOff
+    mov [WrFlags], r0
     ret r0, 0
 
 ;
@@ -231,6 +271,28 @@ DRAW_ROW:           ; draw data in R2:R1
     mov r0, r2
     mov [r4:r5], r0
     ret r0, 0
+
+;
+; Game logic
+;
+
+INC_SCORE:
+    mov r0, [ScoreLow]
+    mov r1, r0
+    mov r0, [ScoreHigh]
+    mov r2, r0
+    gosub SAT_INC_BCD
+    mov r0, r1
+    mov [ScoreLow], r0
+    mov r0, r2
+    mov [ScoreHigh], r0
+    ret r0, 0
+
+DEC_LIVES:
+    mov r0, [Lives]
+    dec r0
+
+    mov [Lives], r0
 
 ;
 ; Demon-specific drawing functions
@@ -297,6 +359,43 @@ DRAW_LIVES:
     gosub DRAW_ROW
     ret r0, 0
 
+DRAW_SCORE:
+    mov r5, 1           ; score screen has demons
+    mov r0, [D1Pos]     ; flying above and below the
+    mov r6, r0          ; digits
+    gosub DRAW_DEMON
+    mov r5, 12
+    mov r0, [D2Pos]
+    mov r6, r0
+    gosub DRAW_DEMON
+
+    mov r5, ScoreStartRow
+    mov r0, [ScoreLow]
+    mov r6, r0
+    mov r0, [ScoreHigh]
+    mov r7, r0
+    mov r8, 0
+
+DRAW_SCORE_LOOP:
+    mov pch, HIGH DigitTable
+    mov pcm, r6
+    mov jsr, r8
+    mov r1, r0
+
+    mov pch, HIGH DigitTable
+    mov pcm, r7
+    mov jsr, r8
+    mov r2, r0
+
+    gosub DRAW_ROW
+    inc r8
+    inc r5
+    mov r0, r5
+    cp r0, ScoreEndRow + 1
+    skip z, 1
+      jr DRAW_SCORE_LOOP
+    ret r0, 0
+
 ;
 ; Input handling
 ;
@@ -309,15 +408,18 @@ CHECK_INPUT:
     skip nz, 1
       ret r0, 0
     mov r0, [KeyReg]
-    cp r0, Btn_Y_8
+    cp r0, Btn_Opc_8        ; toggle panel
     skip nz, 2
-      goto MOVE_BASE_LEFT
-    cp r0, Btn_Y_4
-    skip nz, 2
-      goto MOVE_BASE_RIGHT
-    cp r0, Btn_Y_1
-    skip nz, 2
-      goto FIRE_SHOT
+        goto TOGGLE_PANEL
+    cp r0, Btn_Y_8          ; move left
+    skip nz, 1
+      jr MOVE_BASE_LEFT
+    cp r0, Btn_Y_4          ; move right
+    skip nz, 1
+      jr MOVE_BASE_RIGHT
+    cp r0, Btn_Y_1          ; fire
+    skip nz, 1
+      jr FIRE_SHOT
     ret r0, 0
 
 MOVE_BASE_LEFT:
@@ -338,5 +440,71 @@ MOVE_BASE_RIGHT:
     ret r0, 0
 
 FIRE_SHOT:
-    ; FIXME
+    ; FIXME - actually set fire state instead of inc score
+
     ret r0, 0
+
+;
+; DATA TABLES
+;
+
+    ORG 0x400
+    NIBBLE 0b0111
+    NIBBLE 0b0101
+    NIBBLE 0b0101
+    NIBBLE 0b0101
+    NIBBLE 0b0111
+    ORG 0x410
+    NIBBLE 0b0010
+    NIBBLE 0b0110
+    NIBBLE 0b0010
+    NIBBLE 0b0010
+    NIBBLE 0b0111
+    ORG 0x420
+    NIBBLE 0b0111
+    NIBBLE 0b0001
+    NIBBLE 0b0010
+    NIBBLE 0b0100
+    NIBBLE 0b0111
+    ORG 0x430
+    NIBBLE 0b0111
+    NIBBLE 0b0001
+    NIBBLE 0b0011
+    NIBBLE 0b0001
+    NIBBLE 0b0111
+    ORG 0x440
+    NIBBLE 0b0101
+    NIBBLE 0b0101
+    NIBBLE 0b0111
+    NIBBLE 0b0001
+    NIBBLE 0b0001
+    ORG 0x450
+    NIBBLE 0b0111
+    NIBBLE 0b0100
+    NIBBLE 0b0111
+    NIBBLE 0b0001
+    NIBBLE 0b0111
+    ORG 0x460
+    NIBBLE 0b0111
+    NIBBLE 0b0100
+    NIBBLE 0b0111
+    NIBBLE 0b0101
+    NIBBLE 0b0111
+    ORG 0x470
+    NIBBLE 0b0111
+    NIBBLE 0b0001
+    NIBBLE 0b0010
+    NIBBLE 0b0010
+    NIBBLE 0b0010
+    ORG 0x480
+    NIBBLE 0b0111
+    NIBBLE 0b0101
+    NIBBLE 0b0111
+    NIBBLE 0b0101
+    NIBBLE 0b0111
+    ORG 0x490
+    NIBBLE 0b0111
+    NIBBLE 0b0101
+    NIBBLE 0b0111
+    NIBBLE 0b0001
+    NIBBLE 0b0111
