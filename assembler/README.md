@@ -110,6 +110,17 @@ In addition to the opcodes that directly translate to machine code, this assembl
   RET R0,0b0110
   RET R0,0b0001
   ```
+* #### NIBBLE
+
+  ```
+  NIBBLE 0b1100
+  NIBBLE 0b0001
+  ```
+  The NIBBLE pseudo-op is used to store an 4-bit value in a table. This is equivalent to writing RET R0, <number>, but looks better in a table as an analogue to the BYTE directive. Much like BYTE, you would retrieve these values by using the JSR register to jump into the table. The above example generates this code.
+  ```
+  RET R0,0b1100
+  RET R0,0b0001
+  ```
 
 * #### ASCII
   

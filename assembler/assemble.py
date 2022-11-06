@@ -169,8 +169,8 @@ def parse_asm(lines_of_asm,hexfile_out=None):
             cm = None
 
             #Setup comment and source code display for non-special cases
-            #"BYTE" gets grouped in here to write these to just the first of the two generated lines
-            if tokens[0] not in Opcodes().pseudo_opcodes or (tokens[0] in (Opcodes().BYTE,Opcodes().GOTO,Opcodes().GOSUB) and i==0):
+            #"BYTE" and "NIBBLE" gets grouped in here to write these to just the first of the two generated lines
+            if tokens[0] not in Opcodes().pseudo_opcodes or (tokens[0] in (Opcodes().BYTE,Opcodes().NIBBLE,Opcodes().GOTO,Opcodes().GOSUB) and i==0):
                 if options.show_assembly_or_verbose():
                     cm = c.source
                 elif options.show_comments:
@@ -1010,6 +1010,11 @@ class Opcodes:
         #Split byte into low/high nibble and RET in that order
         return self.args_r0n([tokens[0],"R0",tokens[1]&0xF],self.RETR0N) + self.args_r0n([tokens[0],"R0",tokens[1]>>4],self.RETR0N)
 
+    def opcode_nibble(self, tokens):
+        arg_count_test(len(tokens),2)
+        validate_four_bit_int(tokens[1])
+        return self.args_r0n([tokens[0],"R0",tokens[1]&0xF],self.RETR0N)
+
     #Constants for opcode lookup
     EXTENDEDOP,ADDRXRY,ADCRXRY,SUBRXRY = 0b0000,0b0001,0b0010,0b0011
     SBBRXRY,ORRXRY,ANDRXRY,XORRXRY = 0b0100,0b0101,0b0110,0b0111
@@ -1026,6 +1031,7 @@ class Opcodes:
     ORG="ORG"
     ASCII="ASCII"
     BYTE="BYTE"
+    NIBBLE="NIBBLE"
     EQU="EQU"
 
     instructions = {
@@ -1055,8 +1061,9 @@ class Opcodes:
         ORG: opcode_org,
         ASCII: opcode_ascii,
         BYTE: opcode_byte,
+        NIBBLE: opcode_nibble,
         }
-    pseudo_opcodes = [GOTO, GOSUB, ORG, ASCII, BYTE]
+    pseudo_opcodes = [GOTO, GOSUB, ORG, ASCII, BYTE, NIBBLE]
     token_preceders = [instructions]+[EQU,"[",":",","]
     VALID_MESSAGE_CHARS = ' !"#$%&\'()*+,-./0123456789:<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~'
 
