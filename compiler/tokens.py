@@ -184,15 +184,16 @@ class If(Token):
         else:
             raise KeyError
 
-        # Make comparison ==, !=, or >=
+        # Make comparison ==, !=
         if comparator == "==":
             self.instructions.append(f"skip z, 2 ; skip next goto if values are ==")
         elif comparator == "!=":
             self.instructions.append(f"skip nz, 2 ; skip next goto if values are !=")
-        elif comparator == ">=":
-            self.instructions.append(f"skip c, 2 ; skip next goto if {left} >= {right}")
-        elif comparator == "<":
-            self.instructions.append(f"skip nc, 2 ; skip next goto if {left} < {right}")
+        # >= and > are currently broken, they always evaluate true
+        # elif comparator == ">=":
+        #     self.instructions.append(f"skip c, 2 ; skip next goto if {left} >= {right}")
+        # elif comparator == "<":
+        #     self.instructions.append(f"skip nc, 2 ; skip next goto if {left} < {right}")
         else:
             raise ValueError(f"Unknown comparator `{comparator}`")
 
@@ -243,6 +244,64 @@ class EndWhile(Token):
         while_name = scope.pop(pop_while=True)
         self.instructions.append(f"goto {while_name}\n")
         self.instructions.append(f"end{while_name}:\n\n")
+
+
+class MemAccess(Token):
+    """Read/Write to an address in memory"""
+
+    def process(self, scope: variables.Scope) -> None:
+        # dest <= page slot
+        # page slot <= src
+        word_tokens = self.source_value.split(" ")
+        page = ""
+        slot = ""
+        src = ""
+        dest_var = None
+        # Get src/dest vars
+        if "<=" == word_tokens[1].strip():
+            # Reads
+            dest_var = scope[word_tokens[0].strip()]
+            page_raw = word_tokens[2].strip()
+            slot_raw = word_tokens[3].strip()
+            read = True
+        elif "<=" == word_tokens[2].strip():
+            # Writes
+            page_raw = word_tokens[0].strip()
+            slot_raw = word_tokens[1].strip()
+            src_name = word_tokens[3].strip()
+            if src_name in scope:
+                src = scope[src_name].get_register()
+            elif variables.Nibble.can_be_nibble(src_name):
+                src = "r0"
+                self.instructions.append(f"mov r0, {src_name} ; Copy int literal to r0 for copy to memory\n")
+            read = False
+        with scope:
+            # Convert page/slot to valid strings
+            print("page raw", page_raw)
+            if variables.Nibble.can_be_nibble(page_raw) and not page_raw in scope:
+                page = f"0x{hex(int(page_raw))[2:]}"
+                print("page", page)
+            elif page_raw in scope:
+                print("else")
+                page = scope[page_raw].get_register()
+            if variables.Nibble.can_be_nibble(slot_raw) and not slot_raw in scope:
+                slot = f"{hex(int(slot_raw))[2:]}"
+            elif slot_raw in scope:
+                slot = scope[slot_raw].get_register()
+            if variables.Nibble.can_be_nibble(page_raw) and slot_raw in scope:
+                print("page is a literal")
+                temp_var = variables.Variable("temp_page")
+                self.instructions.append(f"mov {temp_var.get_register()}, {page_raw} ; Copy literal to temp variable\n")
+                scope[temp_var.name] = temp_var
+                page = temp_var.get_register()
+
+        # Perform read/write
+        print(f"Memory: read: {read} page: {page} slot: {slot}")
+        if read:
+            self.instructions.append(f"mov r0, [{page}:{slot}] ; read value from memory [{page_raw}, {slot_raw}]\n")
+            self.instructions.append(f"mov {dest_var.get_register()}, r0 ; copy value from r0 to {dest_var.name}\n")
+        else:  # write
+            self.instructions.append(f"mov [{page}:{slot}], r0; write {src} to memory [{page_raw}, {slot_raw}]\n")
 
 
 class FunctionDefine(Token):

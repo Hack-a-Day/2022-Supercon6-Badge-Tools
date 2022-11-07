@@ -1,0 +1,15 @@
+# Fibbonacci
+# 1 1 2 3 5 8 13
+
+page = 15
+slot = 1
+page slot <= 7
+
+x = 1
+y = 0
+
+while x != 13
+    z = x
+    x = x + y
+    y = z
+endwhile

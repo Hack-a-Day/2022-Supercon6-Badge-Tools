@@ -30,7 +30,7 @@ class Literal:
             intval = int(value)
         except ValueError:
             raise errors.CompilerBadNumber()
-        if (-1 * self.MAXINT - 1) <= intval <= self.MAXINT:
+        if 0 <= intval <= self.MAXINT:
             self.value = intval
         else:
             raise errors.BadgeNumberTooBig()
@@ -40,17 +40,21 @@ class Literal:
 
 
 class Nibble(Literal):
-    """A Signed 4-bit integer"""
-    MAXINT = 7
+    """An unigned 4-bit integer"""
+    MAXINT = 15
 
     @classmethod
     def can_be_nibble(cls, value: str) -> bool:
         """Test if the value can become a nibble"""
+        # print(value)
         try:
-            if (-1 * cls.MAXINT - 1) <= int(value) <= cls.MAXINT:
+            if 0 <= int(value) <= cls.MAXINT:
+                # print("can nibble")
                 return True
+            # print("cannot nibble ineq")
             return False
         except ValueError:
+            # print("cannot nibble val")
             return False
 
 
