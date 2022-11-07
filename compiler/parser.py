@@ -41,6 +41,13 @@ def parse(filename):
             if line_stripped == "endif":
                 parsed_tokens.append(tokens.EndIf(filename, line_num))
                 line_parsed = True
+            if line_stripped.startswith("while"):
+                expression = line_stripped.lstrip("while").strip()
+                parsed_tokens.append(tokens.While(filename, line_num, expression))
+                line_parsed = True
+            if line_stripped == "endwhile":
+                parsed_tokens.append(tokens.EndWhile(filename, line_num))
+                line_parsed = True
 
             # Comments
             if len(fragments) > 1:

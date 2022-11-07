@@ -151,6 +151,8 @@ def temp_variable_from_value(src: str, scope: variables.Scope) -> tuple[variable
 class If(Token):
     """Start of an if block"""
 
+    branch_type = "if"
+
     def process(self, scope: variables.Scope) -> None:
         word_tokens = self.source_value.split(" ")
         left = word_tokens[0].strip()
@@ -177,11 +179,11 @@ class If(Token):
             left_var = scope[left]
             right_var = scope[right]
             self.instructions.append(f"mov r0, {left_var.get_register()} ; Move {left} to R0")
-            self.instructions.append(f"sub r0, {right_var.get_register()} ; Subtract {left} and {right}")
-            self.instructions.append(f"cp r0, 0 ; compare difference with 0 to see if {left} and {right} are the same")
+            self.instructions.append(f"sub r0, {right_var.get_register()} ; Subtract {left} and {right}, compare")
+            # self.instructions.append(f"cp r0, 0 ; compare difference with 0 to see if {left} and {right} are the same")
         else:
             raise KeyError
-        
+
         # Make comparison ==, !=, or >=
         if comparator == "==":
             self.instructions.append(f"skip z, 2 ; skip next goto if values are ==")
@@ -189,13 +191,22 @@ class If(Token):
             self.instructions.append(f"skip nz, 2 ; skip next goto if values are !=")
         elif comparator == ">=":
             self.instructions.append(f"skip c, 2 ; skip next goto if {left} >= {right}")
+        elif comparator == "<":
+            self.instructions.append(f"skip nc, 2 ; skip next goto if {left} < {right}")
+        else:
+            raise ValueError(f"Unknown comparator `{comparator}`")
 
-        # Jump to bottom of if-block
-        filename = os.path.basename(self.file_source)
-        if_name = f"if_{filename}_{self.line_source}"
-        self.instructions.append(f"goto end{if_name}\n")
+        # Jump to bottom of if/while-block
+        filename = os.path.splitext(os.path.basename(self.file_source))[0]
+        block_name = f"{self.branch_type}_{filename}_{self.line_source}"
+        self.instructions.append(f"goto end{block_name}\n")
 
-        scope.push(if_block=if_name)
+        if self.branch_type == "if":
+            scope.push(if_block=block_name)
+        elif self.branch_type == "while":
+            scope.push(while_block=block_name)
+        else:
+            raise ValueError
 
 
 class EndIf(Token):
@@ -207,6 +218,31 @@ class EndIf(Token):
     def process(self, scope: variables.Scope) -> None:
         if_name = scope.pop(pop_if=True)
         self.instructions.append(f"end{if_name}:\n\n")
+
+
+class While(If):
+    """Start a while loop"""
+
+    branch_type = "while"
+
+    def process(self, scope: variables.Scope) -> None:
+        # Make a label for the top of the while loop
+        filename = os.path.splitext(os.path.basename(self.file_source))[0]
+        while_name = f"{self.branch_type}_{filename}_{self.line_source}"
+        self.instructions.append(f"{while_name}:\n")
+        super().process(scope)
+
+
+class EndWhile(Token):
+    """End of a while loop definition"""
+    
+    def __init__(self, file_source, line_source) -> None:
+        super().__init__(file_source, line_source, "")
+
+    def process(self, scope: variables.Scope) -> None:
+        while_name = scope.pop(pop_while=True)
+        self.instructions.append(f"goto {while_name}\n")
+        self.instructions.append(f"end{while_name}:\n\n")
 
 
 class FunctionDefine(Token):
