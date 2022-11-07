@@ -148,6 +148,8 @@ GameAnim    EQU 0x68
   NoAnim    EQU 0
   WipeUp    EQU 1
   WipeDown  EQU 2
+LogoPosL    EQU 0x6A    ; combined range of 0..31
+LogoPosH    EQU 0x6B
 
 D1Row       EQU 0x80    ; 0-14, 15 means don't draw
 D1Pos       EQU 0x81    ; 0-5
@@ -240,7 +242,7 @@ ATTRACT_MODE:
 
     gosub MOVE_DEMONS_X
     gosub DRAW_DEMONS
-    ; TO BE IMPLEMENTED: gosub DRAW_DEMON_LOGO
+    gosub DRAW_DEMON_LOGO
     gosub DRAW_ARROW
     jr FINISH_MODE
 
@@ -638,7 +640,6 @@ SETUP_ATTRACT_STATE:
     mov [D1Row], r0
     mov r0, 3
     mov [D2Row], r0
-
     ; don't need to set pos as that will be set by
     ; wiggle pattern and index
     mov r0, PatWiggle
@@ -646,6 +647,8 @@ SETUP_ATTRACT_STATE:
     mov [D2Pattern], r0
     mov r0, 0
     mov [D1PatIdx], r0
+    mov [LogoPosL], r0
+    mov [LogoPosH], r0
     mov r0, 5
     mov [D2PatIdx], r0
 
@@ -870,6 +873,42 @@ DRAW_SCORE_LOOP:
     cp r0, ScoreEndRow + 1
     skip z, 1
       jr DRAW_SCORE_LOOP
+    ret r0, 0
+
+DRAW_DEMON_LOGO:
+    ; r1 will be index into logo
+    ; r5 is the drawing row
+    ; r8 is counter 
+    mov r1, 0
+    mov r5, 6
+    mov r8, 0
+
+    ;mov r0, [LogoPosH]
+    ;bit r0, 1               ; check for high bit (16-31)
+
+DRAW_DEMON_LOGO_LOOP:
+    mov pch, HIGH DemonTable
+    mov pcm, r8 
+    mov jsr, 0
+    mov r2, r0
+    mov jsr, 1
+    mov r1, r0
+    gosub DRAW_ROW
+    inc r5
+    inc r8
+    mov r0, r8
+    cp r0, 5
+    skip z, 1
+      jr DRAW_DEMON_LOGO_LOOP
+
+    ; increment logo position after draw
+    mov r0, [LogoPosL]
+    inc r0
+    mov [LogoPosL], r0
+    skip nc, 3
+      mov r0, [LogoPosH]
+      btg r0, 0             ; since range is to 31, just toggle low bit
+      mov [LogoPosH], r0
     ret r0, 0
 
 ;
