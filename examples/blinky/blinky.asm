@@ -48,14 +48,25 @@ PlatformRows EQU 4
 
 ; init
 init: 
+; initialize high score
+MOV R0, 0
+MOV [2:2],R0
+MOV [2:3],R0
+
+mov r0, F_1_kHz; slow down a bit
+mov [Clock], r0
+
+game_start:
+;initialize score
+MOV R0, 0
+MOV [2:0],R0
+MOV [2:1],R0
+
 mov r5, 4 ; page
 mov r2, 0 ; storage for the ball's bit
 
 mov r0,r5  ; go to display page
 mov [Page], r0
-
-mov r0, F_1_kHz; slow down a bit
-mov [Clock], r0
 
 mov r6, 3
 mov r7, 13
@@ -77,6 +88,7 @@ mov r1, r2
 gosub set_bottom_row
 
 gosub shift_screen_up
+gosub update_score
 
 mov r0, r5 ; r5 = how often to generate new row
 cp r0, 0
@@ -333,6 +345,8 @@ gosub set_bottom_row
 gosub shift_screen_up
 dsz r8
 JR d_loop
+; check for high score and save
+gosub save_high_score
 d_check_button:
 bit r3, 2
 skip z, 1
@@ -346,5 +360,49 @@ gosub set_bottom_row
 gosub shift_screen_up
 dsz r8
 JR d_clearscreen_loop
+GOTO game_start
 
-GOTO init
+update_score:
+EXR 0
+mov r0, 0
+mov r3, r0
+MOV r0, [2:0] ; low nibble
+MOV r1, r0 
+MOV r0, [2:1] ; high nibble
+INC r1
+ADC r0, r3 ; 8-bit increment (add zero, with carry)
+; score = (r0:r1)
+MOV [2:1], r0
+MOV r0, r1
+MOV [2:0], r0
+EXR 0
+RET r0, 0
+
+save_high_score:
+EXR 0
+MOV r0, [2:0] ; load curr score into r3:r4
+MOV r4, r0
+MOV r0, [2:1]
+MOV r3, r0
+MOV r0, [2:2] ; load high score into r1:r2
+MOV r2, r0
+MOV r0, [2:3]
+MOV r1, r0
+
+sub r2,r4
+skip c, 3
+sbb r1,r3
+skip c, 1
+JR set_high_score
+EXR 0
+RET r0, 0
+
+set_high_score:
+MOV r0, [2:0] ; load curr score into r4:r3
+MOV r1, r0
+MOV r0, [2:1]
+MOV [2:3], r0
+MOV r0, r1
+MOV [2:2], r0
+EXR 0
+RET r0, 0
