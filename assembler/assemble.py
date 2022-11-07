@@ -88,6 +88,11 @@ class Registers:
         "NC",
         "Z",
         "NZ",
+        # these are aliases to C,NC,Z,NZ and order needs to be preserved
+        "GTE",
+        "LT",
+        "EQ",
+        "NE",       
         "PC",
     )
 
@@ -973,13 +978,20 @@ class Opcodes:
     def opcode_skip(self, tokens):
         #SKIP F,M
         arg_count_test(len(tokens),3)
-        if tokens[1] not in Registers().special_registers[:4]:
-            raise ParserError("E::This opcode requires %s, %s, %s, or %s as the first argument" % Registers().special_registers[:4])
-        elif not is_int(tokens[2]) or not 0 <= tokens[2] < 4: 
-            raise ParserError("E::This opcode requires a number [0..3] as the second argument")
+        if tokens[1] not in Registers().special_registers[:8]:
+            raise ParserError("E::This opcode requires %s, %s, %s, %s, %s, %s, %s, or %s as the first argument" % Registers().special_registers[:8])
+        elif not is_int(tokens[2]) or not 0 <= tokens[2] < 5: 
+            raise ParserError("E::This opcode requires a number [0..4] as the second argument")
         else:
-            F = Registers().special_registers.index(tokens[1])<<2
-            return (make_machinecode(self.EXTENDEDOP, self.SKIPFM, F + validate_two_bit_int(tokens[2])),)
+            F = Registers().special_registers.index(tokens[1])
+            # map aliases to flags
+            if F >= 4:
+                F = F - 4
+            skip_num = tokens[2]
+            # special case: skip 4 is codegen'd as skip 0
+            if skip_num == 4:
+                skip_num = 0
+            return (make_machinecode(self.EXTENDEDOP, self.SKIPFM, (F << 2) + skip_num),)
 
     def opcode_goto(self, tokens):
         return self.args_go(tokens,get_reg_number("PCL"))
