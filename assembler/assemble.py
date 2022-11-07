@@ -810,6 +810,8 @@ class Opcodes:
         elif not is_int(tokens[2]):
             raise ParserError("E::This opcode requires a number as the second argument")
         else:
+            if tokens[2] < 0:
+                tokens[2] += 16
             return (make_machinecode(0, opcode, tokens[2]),)
 
     def args_ry(self, tokens,opcode):
