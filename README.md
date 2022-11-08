@@ -15,6 +15,11 @@ If you don't have Python installed, you can also run the same assembler in the c
 
 We've written a few examples, blinky and otherwise, to help you on your way.  But you're going to write your masterwork as well.  Save it in a subdirectory prefixed by your handle like "coolHacker1337-super_blinker" with whatever documentation you want to add, and submit a pull request.  We'll get it posted here for all to enjoy!  
 
+## Software
+
+If you've written any computer-side software tools that will help others work with the badge, open up a subdirectory here and shoot us a pull request!
+
+
 ## Emulator
 
 Why would you emulate a badge that you have in your hands?  Well, it _does_ make for a faster code, test, code cycle.  So far, we have gotten most of the core functionality of the badge working, but buttons and how to think about IO are still a work in progress.  Hack away!
