@@ -1,0 +1,59 @@
+# # Demonstrate branches and loops
+ x = 5
+ y = 0
+# 
+# if x == 5
+#     y = 1
+# endif
+# 
+# noop
+# noop
+# 
+# if x == 4
+#     y = 2
+# endif
+# 
+# noop
+# noop
+# 
+# if 2 != y
+#     y = 3
+# endif
+# 
+# noop
+# noop
+# 
+
+if x == y
+    y = 1
+endif
+
+noop
+noop
+noop
+
+if x >= y
+    y = 4
+endif
+
+noop
+noop
+
+if y >= x
+    noop
+    noop
+    noop
+    y = 3
+endif
+
+noop
+noop
+
+x = 6
+y = 2
+while x != y
+    y = y + 1
+endwhile
+
+noop
+noop

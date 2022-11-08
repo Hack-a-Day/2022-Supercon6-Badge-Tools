@@ -1,0 +1,18 @@
+# Fibbonacci
+# 1 1 2 3 5 8 13
+final = 13
+
+page = 15
+slot = 1
+page slot <= 7
+
+x = 1
+# This will be in R6
+y = 0
+# This will be in R5
+
+while x != final
+    z = x
+    x = x + y
+    y = z
+endwhile
