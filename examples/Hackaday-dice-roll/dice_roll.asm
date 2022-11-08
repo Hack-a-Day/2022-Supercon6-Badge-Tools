@@ -10,7 +10,7 @@ gosub getroll	; Put random number in R1
 mov r2, 1	; Subtract 1 from result to get mem address
 sub r1, r2
 gosub drawdie	; Start drawing routine
-ret r0, 0	; Badge will halt on an un-called return, ending program
+jr -1		; Loop forever
 
 getroll:	; Get random number between 1 and 6 
 mov r0, [0xff]	; Read from PRNG
