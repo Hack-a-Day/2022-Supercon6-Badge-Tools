@@ -1,4 +1,4 @@
-# Compiler for Hackaday Supercon 6 Badge
+"""Compiler for Hackaday Supercon 6 Badge"""
 
 import argparse
 import os.path
@@ -34,8 +34,10 @@ def main():
     arg_parser = argparse.ArgumentParser("Badge Compiler")
     arg_parser.add_argument("sources", nargs=1, help="List of source text files to compile")
     arg_parser.add_argument("--assemble", help="Also assemble to hex files", action="store_true", default=False)
-    arg_parser.add_argument("--simulate", help="Also run emulator with compiled code. Implies --assemble.", action="store_true", default=False)
+    # TODO: Invoking the emulator as a subprocess currently causes bad reads of the hex files. Re-enable after fixing.
+    # arg_parser.add_argument("--simulate", help="Also run emulator with compiled code. Implies --assemble.", action="store_true", default=False)
     args = arg_parser.parse_args()
+    args.simulate = False  # TODO: Remove after fixing invoking simulator as a subprocess
 
     tokens = []
     for source_filename in args.sources:

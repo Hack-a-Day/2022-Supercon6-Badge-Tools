@@ -1,4 +1,4 @@
-# Parser
+"""Parse language into tokens"""
 
 import errors
 import tokens

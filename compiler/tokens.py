@@ -1,8 +1,9 @@
-# Intermediate representation
+"""Tokens representing an intermediate state of actions in the language"""
 
 import os
 from typing import Optional
 
+import errors
 import variables
 
 class Token:
@@ -182,7 +183,7 @@ class If(Token):
             self.instructions.append(f"sub r0, {right_var.get_register()} ; Subtract {left} and {right}, compare")
             # self.instructions.append(f"cp r0, 0 ; compare difference with 0 to see if {left} and {right} are the same")
         else:
-            raise KeyError
+            raise KeyError(f"Unable to recognize `{left}` and `{right}` as variables from {self.file_source}:{self.line_source}")
 
         # Make comparison ==, !=
         if comparator == "==":

@@ -1,4 +1,4 @@
-# Compiler Errors
+"""Possible errors reported by the compiler"""
 
 class BadgeSyntaxError(ValueError):
     """Invalid Syntax"""
@@ -26,3 +26,7 @@ class CompilerOutOfRegisters(ValueError):
 
 class CompilerBadNumber(ValueError):
     """Tried to turn a string into an integer and failed"""
+
+
+class CompilerUnknownVariable(KeyError):
+    """Tried to lookup a variable that doesn't seem previously defined"""

@@ -1,4 +1,4 @@
-# Variables
+"""Store state of variables and scope of currently available variables"""
 
 import enum
 
