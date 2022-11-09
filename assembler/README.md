@@ -14,18 +14,41 @@ The disassembler will produce `.s` files so as not to overwrite existing user-pr
 
 Both scripts have flags to configure what output is shown to the user. Use `-h` for more info about these options.
 
-## Serial Operations on Linux
+## Serial Save/Load
 
-Each time the USB-to-Serial cable is plugged in, set the port to raw mode:
-`stty -F /dev/ttyUSB0 raw`
+When badge is in DIR mode, programs can be sent from the computer to the badge via serial by pressing `load` button. Programs can also be sent from the badge to the computer by pressing the `save` button.
 
-When badge is in DIR mode, programs can be sent from the computer to the badge via serial by pressing `load` button. Press the button then run this command on the computer:
+Note that before you send a program with the `save` button, you should already have prepared the software on your computer to capture its output.
+
+### Linux
+
+For best results, you should set set the port to raw mode each time the USB-to-Serial cable is plugged in with the following command:
+
+`stty -F /dev/ttyUSB0 raw 9600`
+
+Sending a program from the computer to the badge would look something like this:
+
 `cat out.hex > /dev/ttyUSB0`
 
-Programs can also be sent from the badge to the computer via serial by pressing the `save` button. Before doing so, prepare the computer with this command:
-`cat /dev/ttyUSB0 > out.hex`
-and press CTRL-C when done. The resulting file may be view with a hex editor such as `xxd out.hex`
+To capture a program sent from the badge, you would invert the command like so:
 
+`cat /dev/ttyUSB0 > out.hex`
+
+After the program has been sent, press CTRL-C to close the connection. The resulting file may be viewed with a hex editor such as `xxd out.hex`
+
+### Mac OS
+
+In theory the Linux instructions should apply to Mac OS due to their common UNIX herritage, but interestingly enough, we've received reports that Mac's version of the `cat` command doesn't work the same way as it does under Linux.
+
+As far as we can tell, the solution for those running Mac OS is to use a third-party serial terminal application such as CoolTerm to send the file.
+
+### Chrome OS
+
+So long as your usb-to-serial adapter is allowed by the Crostini USB device whitelist, the above commands for Linux should also work for Chrome OS.
+
+### Windows
+
+To send a program to the badge from a Windows machine, use the included win_flash.py Python script.
 
 ## Pseudo-operations
 
