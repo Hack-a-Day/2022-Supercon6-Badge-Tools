@@ -216,6 +216,7 @@ class CPU:
                 self.Z = 1
             else:
                 self.Z = 0
+            self.C = 1
     
 
     def AND(self, args):
@@ -234,6 +235,7 @@ class CPU:
                 self.Z = 1
             else:
                 self.Z = 0
+            self.C = 0
     
 
     def XOR(self, args):
