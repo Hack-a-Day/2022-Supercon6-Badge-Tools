@@ -917,6 +917,8 @@ class Opcodes:
                         raise ParserError("E::Type mismatch for values inside brackets")
                 else:
                     raise Exception()
+            else:
+                raise ParserError("E::This opcode requires R0 as the first argument")
         #Catch edge case syntax error
         elif tokens[1] == "PC":
             raise ParserError("E::Syntax error, numeric literal must be in brackets for PC,[NN]")
