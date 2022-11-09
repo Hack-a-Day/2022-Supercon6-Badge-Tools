@@ -791,7 +791,7 @@ class Opcodes:
             return self.instructions.get(args[0][0])(self,*args)
         except Exception as e:
             raise type(e)(str(e) +
-                      '\n\tThis happened when passing opcode %s (which assembler thinks doesn\'t exist?)' % str(args[0][0])).with_traceback(sys.exc_info()[2])
+                      '\n\tThis happened when passing opcode %s' % str(args[0][0])).with_traceback(sys.exc_info()[2])
 
 
     def args_rxry(self, tokens,opcode):
