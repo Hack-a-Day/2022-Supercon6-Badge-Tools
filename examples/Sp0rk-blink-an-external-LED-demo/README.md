@@ -28,6 +28,8 @@ On linux:
 * on badge: RUN mode then RUN
 
 (use dmesg to validate that device is ttyUSB0 if necessary)
+
+<img src="./Schematic.JPG" width=50%>
+<img src="./Wiring photo 1.jpg" width=50%>
+<img src="./Wiring photo 2.jpg" width=50%>
   
-  
- 
