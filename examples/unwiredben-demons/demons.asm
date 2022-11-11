@@ -77,7 +77,7 @@ KeyReg      EQU 0xfd
   Btn_Y_1   EQU 12
   Btn_DtIn  EQU 13
 Dimmer      EQU 0xfe
-Random      EQU 0xff 
+Random      EQU 0xff
 
 ; DEMON is drawn as either *.*    .*.
 ;                          .*. or *.* depending on animation frame
@@ -148,13 +148,17 @@ GameAnim    EQU 0x68
   NoAnim    EQU 0
   WipeUp    EQU 1
   WipeDown  EQU 2
-LogoPosL    EQU 0x6A    ; combined range of 0..31
-LogoPosH    EQU 0x6B
+
+; This is the number of the first column that's shown
+; for the logo.  It's incremented for each frame of the
+; attract screen until it gets to 7:3, then wraps to 0:0
+LogoPosL    EQU 0x69    ; 0..3 - position within nibble
+LogoPosH    EQU 0x6A    ; 0..7 - number of nibble
 
 D1Row       EQU 0x80    ; 0-14, 15 means don't draw
 D1Pos       EQU 0x81    ; 0-5
 D1Pattern   EQU 0x82    ; 0-4
-  PatStill  EQU 0       ; stay in same 
+  PatStill  EQU 0       ; stay in same
   PatWiggle EQU 1       ; wide back and forth
   PatJitter EQU 2       ; tight back and forth
   PatDie    EQU 3
@@ -179,7 +183,7 @@ WiggleTable EQU 0x600
 ; R4 right page (4 or 5)
 ; R5 row
 ; R6,R7 misc parameter
-; R8 active demon (8 or 9)
+; R8 active demon page (8 or 9)
 
 INIT:
     mov r0, F_100_kHz
@@ -212,7 +216,7 @@ FINISH_ANIM:
     cp r0, ShowScore
     skip nz, 2
       goto SHOW_SCORE_MODE
-FINISH_MODE:    
+FINISH_MODE:
     gosub FLIP_PAGES
     gosub CHECK_INPUT
     gosub CHECK_LIVES
@@ -238,12 +242,11 @@ ATTRACT_MODE:
     ; at the bottom of the screen, while two
     ; demons fly back and forth on rows 0 & 3
     ; the word "DEMON" scrolls across in 5-pixel
-    ; high letters on rows 6-A 
+    ; high letters on rows 6-A
 
     gosub MOVE_DEMONS_X
     gosub DRAW_DEMONS
     gosub DRAW_DEMON_LOGO
-    gosub DRAW_ARROW
     jr FINISH_MODE
 
 ACTIVE_MODE:
@@ -269,17 +272,32 @@ SHOW_SCORE_MODE:
 ; Utility Functions
 ;
 
-SHIFT_LEFT:         ; value in r1 left by r0, output in r2/r1
+LSL_16_BY_R0:       ; compute R2:R1 =  R1 << R0
     mov r2, 0
-SHIFT_LEFT_LOOP:
+LSL16_1:
     dec r0
     skip nc, 3
       add r1, r1
       adc r2, r2
-      jr SHIFT_LEFT_LOOP
+      jr LSL16_1
     ret r0, 0
 
-SAT_INC_BCD:         ; add 1 to BCD number in r2:r1, saturating at 99
+LSL_8_BY_R0:        ; compute R1 = R1 << R0
+    dec r0
+    skip nc, 2
+      add r1, r1
+      jr LSL_8_BY_R0
+    ret r0, 0
+
+LSR_8_BY_R0:        ; compute R1 = R1 >> R0, no sign extension
+    dec R0
+    skip nc, 3
+      add r0, 0
+      rrc r1
+      jr LSR_8_BY_R0
+    ret r0, 0
+
+SAT_INC_BCD:        ; add 1 to BCD number in r2:r1, saturating at 99
     inc r1
     mov r0, r1
     cp r0, 10
@@ -325,11 +343,11 @@ FLIP_PAGES:
     mov [Page], r0
     ret r0, 0
 
-SETUP_DRAWING_PAGE: 
+SETUP_DRAWING_PAGE:
     mov r0, [FrameNum]
     bit r0, 0       ; test for odd/even
     mov r0, 2       ; default to even frames drawing to pages 2/3
-    skip z, 1       ; if odd... 
+    skip z, 1       ; if odd...
       mov r0, 4     ; use pages 4/5 for odd frames
     mov r3, r0      ; setup r3 with right draw page
     mov r4, r0      ; then r4 has left draw page
@@ -482,7 +500,7 @@ DROP_DEMON:
     skip nz, 1      ; if equal, return early
       ret r0, 0
     inc r1          ; add 1 to r1 and store back
-    mov r0, r1      
+    mov r0, r1
     mov r1, LOW D1Row
     mov [r8:r1], r0
     ret r0, 0
@@ -707,20 +725,20 @@ DRAW_DEMON:         ; have demon row in r5, position in r6
     mov r1, DF0Top
     mov r0, [FrameNum]
     bit r0, 1
-    skip z, 1 
+    skip z, 1
       mov r1, DF1Top
     mov r0, r6
-    gosub SHIFT_LEFT
+    gosub LSL_16_BY_R0
     gosub DRAW_ROW
 
     inc r5
     mov r1, DF0Bottom
     mov r0, [FrameNum]
     bit r0, 1
-    skip z, 1 
+    skip z, 1
       mov r1, DF1Bottom
     mov r0, r6
-    gosub SHIFT_LEFT
+    gosub LSL_16_BY_R0
     gosub DRAW_ROW
 
     ret r0, 0
@@ -733,13 +751,13 @@ DRAW_DEAD_DEMON:
 
     mov r1, DDieTop
     mov r0, r6
-    gosub SHIFT_LEFT
+    gosub LSL_16_BY_R0
     gosub DRAW_ROW
 
     inc r5
     mov r1, DDieBottom
     mov r0, r6
-    gosub SHIFT_LEFT
+    gosub LSL_16_BY_R0
     gosub DRAW_ROW
     ret r0, 0
 
@@ -757,7 +775,7 @@ DRAW_DEMON_1:
     gosub DRAW_DEAD_DEMON
     mov r0, 15
     mov [D1Row], r0
-    
+
 DRAW_DEMON_2:
     mov r0, [D2Row]
     mov r5, r0
@@ -777,12 +795,12 @@ DRAW_BASE:
     mov r5, BaseRow
     mov r1, BaseTop
     mov r0, [BasePos]
-    gosub SHIFT_LEFT
+    gosub LSL_16_BY_R0
     gosub DRAW_ROW
     inc r5
     mov r1, BaseBottom
     mov r0, [BasePos]
-    gosub SHIFT_LEFT
+    gosub LSL_16_BY_R0
     gosub DRAW_ROW
     ret r0, 0
 
@@ -820,7 +838,7 @@ DRAW_SHOT:
     mov r5, r0
     mov r1, 0b0010
     mov r0, [ShotPos]
-    gosub SHIFT_LEFT
+    gosub LSL_16_BY_R0
     ; instead of calling DRAW_ROW,
     ; inline a version that ORs shot
     ; with screen contents
@@ -830,21 +848,6 @@ DRAW_SHOT:
     mov r0, [r4:r5]
     or r0, r2
     mov [r4:r5], r0
-    ret r0, 0
-
-DRAW_ARROW:
-    mov r5, 14
-    mov r2, 0b0011
-    mov r1, 0b1100
-    gosub DRAW_ROW
-    mov r5, 12
-    mov r2, 0b0001
-    mov r1, 0b1000
-    gosub DRAW_ROW
-    mov r5, 13
-    gosub DRAW_ROW
-    mov r5, 15
-    gosub DRAW_ROW
     ret r0, 0
 
 DRAW_SCORE:
@@ -876,24 +879,70 @@ DRAW_SCORE_LOOP:
     ret r0, 0
 
 DRAW_DEMON_LOGO:
-    ; r1 will be index into logo
-    ; r5 is the drawing row
-    ; r8 is counter 
-    mov r1, 0
-    mov r5, 6
-    mov r8, 0
-
-    ;mov r0, [LogoPosH]
-    ;bit r0, 1               ; check for high bit (16-31)
+    mov r5, 7       ; drawing row
+    mov r8, 0       ; row counter
+                    ; r7 used as temp
 
 DRAW_DEMON_LOGO_LOOP:
+    ; compute the LEFT as
+    ; DT:Row:PosH << PosL | DT:Row:PosL+1 >> (4-PosL)
+
     mov pch, HIGH DemonTable
-    mov pcm, r8 
-    mov jsr, 0
-    mov r2, r0
-    mov jsr, 1
-    mov r1, r0
-    gosub DRAW_ROW
+    mov pcm, r8
+    mov r0, [LogoPosH]
+    mov jsr, r0
+    mov r1, r0          ; R1 = DT:Row:PosH
+
+    mov r0, [LogoPosL]
+    gosub LSL_8_BY_R0
+    mov r7, r1          ; R7 = R1 >> PosL
+
+    mov pch, HIGH DemonTable
+    mov pcm, r8
+    mov r0, [LogoPosH]
+    inc r0
+    mov jsr, r0
+    mov r1, r0          ; R1 = DT:Row:PosH+1
+
+    mov r0, [LogoPosL]
+    mov r2, 4
+    sub r2, r0
+    mov r0, r2          ; R0 = 4 - PosL
+    gosub LSR_8_BY_R0   ; R1 = R1 >> R0
+    or r7, r1           ; R7 = R7 | R1
+    mov r0, r7
+    mov [r4:r5], r0     ; draw right side of row
+
+    ; compute the RIGHT as
+    ; DT:Row:PosH+1 << PosL | DT:Row:PosH+2 >> (4-PosL)
+
+    mov pch, HIGH DemonTable
+    mov pcm, r8
+    mov r0, [LogoPosH]
+    inc r0
+    mov jsr, r0
+    mov r1, r0          ; R1 = DT:Row:PosH+1
+
+    mov r0, [LogoPosL]
+    gosub LSL_8_BY_R0
+    mov r7, r1          ; R7 = R1 >> PosL
+
+    mov pch, HIGH DemonTable
+    mov pcm, r8
+    mov r0, [LogoPosH]
+    add r0, 2
+    mov jsr, r0
+    mov r1, r0          ; R1 = DT:Row:PosH+2
+
+    mov r0, [LogoPosL]
+    mov r2, 4
+    sub r2, r0
+    mov r0, r2          ; R0 = 4 - PosL
+    gosub LSR_8_BY_R0   ; R1 = R1 >> R0
+    or r7, r1           ; R7 = R7 | R1
+    mov r0, r7
+    mov [r3:r5], r0     ; draw right side of row
+
     inc r5
     inc r8
     mov r0, r8
@@ -901,14 +950,34 @@ DRAW_DEMON_LOGO_LOOP:
     skip z, 1
       jr DRAW_DEMON_LOGO_LOOP
 
-    ; increment logo position after draw
+INC_LOGO_POS:
+    ; logo is 40 bits wide
+    ; max position we allow is 32, which is
+    ; 8:0, so special case that
+    mov r0, [LogoPosH]
+    cp r0, 8
+    skip ne, 4
+      mov r0, 0
+      mov [LogoPosH], r0
+      mov [LogoPosL], r0
+      ret r0, 0
+    ; other values will increment with
+    ; special carry handling, since we're
+    ; only using a limited range for the L
+    ; value
     mov r0, [LogoPosL]
     inc r0
+    cp r0, 4
+    skip lt, 1
+      mov r0, 0
     mov [LogoPosL], r0
-    skip nc, 3
-      mov r0, [LogoPosH]
-      btg r0, 0             ; since range is to 31, just toggle low bit
-      mov [LogoPosH], r0
+    skip gte,1
+      ret r0, 0
+    ; LogoPosH = LogoPosH + 1
+    ; it will never go above 6, so no need to mask
+    mov r0, [LogoPosH]
+    inc r0
+    mov [LogoPosH], r0
     ret r0, 0
 
 ;
@@ -1053,7 +1122,9 @@ FIRE_SHOT:                  ; game state in r2
     NIBBLE 0b0111
 
     ORG DemonTable  ; DEMON logo
-                    ; organized as 5 lines of 8 nibbles
+                    ; organized as 5 lines of 10 nibbles
+    NIBBLE 0b0000
+    NIBBLE 0b0000
     NIBBLE 0b1110
     NIBBLE 0b0111
     NIBBLE 0b1011
@@ -1063,6 +1134,8 @@ FIRE_SHOT:                  ; game state in r2
     NIBBLE 0b1000
     NIBBLE 0b0000
     ORG DemonTable + 0x10
+    NIBBLE 0b0000
+    NIBBLE 0b0000
     NIBBLE 0b1001
     NIBBLE 0b0100
     NIBBLE 0b0010
@@ -1072,15 +1145,19 @@ FIRE_SHOT:                  ; game state in r2
     NIBBLE 0b1000
     NIBBLE 0b0000
     ORG DemonTable + 0x20
+    NIBBLE 0b0000
+    NIBBLE 0b0000
     NIBBLE 0b1001
     NIBBLE 0b0111
     NIBBLE 0b0010
     NIBBLE 0b1010
     NIBBLE 0b1001
-    NIBBLE 0b1011
+    NIBBLE 0b0101
     NIBBLE 0b1000
     NIBBLE 0b0000
     ORG DemonTable + 0x30
+    NIBBLE 0b0000
+    NIBBLE 0b0000
     NIBBLE 0b1001
     NIBBLE 0b0100
     NIBBLE 0b0010
@@ -1090,6 +1167,8 @@ FIRE_SHOT:                  ; game state in r2
     NIBBLE 0b1000
     NIBBLE 0b0000
     ORG DemonTable + 0x40
+    NIBBLE 0b0000
+    NIBBLE 0b0000
     NIBBLE 0b1110
     NIBBLE 0b0111
     NIBBLE 0b1010
