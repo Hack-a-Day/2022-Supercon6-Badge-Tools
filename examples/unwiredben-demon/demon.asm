@@ -292,7 +292,7 @@ LSL_8_BY_R0:        ; compute R1 = R1 << R0
 LSR_8_BY_R0:        ; compute R1 = R1 >> R0, no sign extension
     dec R0
     skip nc, 3
-      add r0, 0
+      and r0, 0xf   ; clears carry without disturbing r0
       rrc r1
       jr LSR_8_BY_R0
     ret r0, 0
