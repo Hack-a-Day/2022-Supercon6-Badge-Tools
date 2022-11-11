@@ -951,11 +951,11 @@ DRAW_DEMON_LOGO_LOOP:
       jr DRAW_DEMON_LOGO_LOOP
 
 INC_LOGO_POS:
-    ; logo is 40 bits wide
-    ; max position we allow is 32, which is
-    ; 8:0, so special case that
+    ; logo is 56 bits wide
+    ; max position we allow is 48, which is
+    ; c:0, so special case that
     mov r0, [LogoPosH]
-    cp r0, 8
+    cp r0, 0xc
     skip ne, 4
       mov r0, 0
       mov [LogoPosH], r0
@@ -1122,7 +1122,9 @@ FIRE_SHOT:                  ; game state in r2
     NIBBLE 0b0111
 
     ORG DemonTable  ; DEMON logo
-                    ; organized as 5 lines of 10 nibbles
+                    ; organized as 5 lines of 14 nibbles
+                    ; leading and trailing 2 nibbles are blank
+                    ; to make scrolling look continuous
     NIBBLE 0b0000
     NIBBLE 0b0000
     NIBBLE 0b1110
@@ -1132,6 +1134,10 @@ FIRE_SHOT:                  ; game state in r2
     NIBBLE 0b0110
     NIBBLE 0b0110
     NIBBLE 0b1000
+    NIBBLE 0b0000
+    NIBBLE 0b0010
+    NIBBLE 0b0100
+    NIBBLE 0b0000
     NIBBLE 0b0000
     ORG DemonTable + 0x10
     NIBBLE 0b0000
@@ -1144,6 +1150,10 @@ FIRE_SHOT:                  ; game state in r2
     NIBBLE 0b0111
     NIBBLE 0b1000
     NIBBLE 0b0000
+    NIBBLE 0b0101
+    NIBBLE 0b1010
+    NIBBLE 0b0000
+    NIBBLE 0b0000
     ORG DemonTable + 0x20
     NIBBLE 0b0000
     NIBBLE 0b0000
@@ -1154,6 +1164,10 @@ FIRE_SHOT:                  ; game state in r2
     NIBBLE 0b1001
     NIBBLE 0b0101
     NIBBLE 0b1000
+    NIBBLE 0b0000
+    NIBBLE 0b1011
+    NIBBLE 0b1101
+    NIBBLE 0b0000
     NIBBLE 0b0000
     ORG DemonTable + 0x30
     NIBBLE 0b0000
@@ -1166,6 +1180,10 @@ FIRE_SHOT:                  ; game state in r2
     NIBBLE 0b0100
     NIBBLE 0b1000
     NIBBLE 0b0000
+    NIBBLE 0b1001
+    NIBBLE 0b1001
+    NIBBLE 0b0000
+    NIBBLE 0b0000
     ORG DemonTable + 0x40
     NIBBLE 0b0000
     NIBBLE 0b0000
@@ -1176,6 +1194,10 @@ FIRE_SHOT:                  ; game state in r2
     NIBBLE 0b0110
     NIBBLE 0b0100
     NIBBLE 0b1000
+    NIBBLE 0b0000
+    NIBBLE 0b1010
+    NIBBLE 0b0101
+    NIBBLE 0b0000
     NIBBLE 0b0000
 
     ORG WiggleTable
