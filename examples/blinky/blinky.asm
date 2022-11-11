@@ -53,7 +53,7 @@ MOV R0, 0
 MOV [2:2],R0
 MOV [2:3],R0
 
-mov r0, F_1_kHz; slow down a bit
+mov r0, F_3_kHz; slow down a bit
 mov [Clock], r0
 
 game_start:
@@ -79,6 +79,9 @@ gosub check_keys
 gosub erase_char
 mov r9, r6 ; update last x-pos
 gosub update_char
+cp r0, 1
+skip nz, 2 ; skip 2 because `goto` is actually two instructions
+goto game_start
 gosub draw_char
 
 ; generate next row
@@ -338,6 +341,10 @@ RET R0, 0
 
 dead:
 mov r8, 15
+gosub save_high_score
+cp r0, 1
+skip nz, 1
+jr hs_loop
 d_loop:
 mov r0, 15 ; set to full bar
 mov r1, 15 
@@ -345,8 +352,19 @@ gosub set_bottom_row
 gosub shift_screen_up
 dsz r8
 JR d_loop
-; check for high score and save
-gosub save_high_score
+jr d_check_button
+hs_loop:
+mov r6, 10 ; set to checkboard pattern
+hs_inner:
+mov r0, r6
+mov r1, r0
+gosub set_bottom_row
+gosub shift_screen_up
+mov r0, r6
+xor r0, 0xF
+mov r6, r0
+dsz r8
+JR hs_inner
 d_check_button:
 bit r3, 2
 skip z, 1
@@ -360,7 +378,8 @@ gosub set_bottom_row
 gosub shift_screen_up
 dsz r8
 JR d_clearscreen_loop
-GOTO game_start
+EXR 6
+RET R0,1
 
 update_score:
 EXR 0
@@ -405,4 +424,4 @@ MOV [2:3], r0
 MOV r0, r1
 MOV [2:2], r0
 EXR 0
-RET r0, 0
+RET r0, 1
