@@ -11,7 +11,7 @@ start_x		EQU	3	; initial position of the last tail element
 start_y		EQU	10
 start_len	EQU	3	; initial length (head plus tail)
 start_dir	EQU	0	; initial direction is up (see delta_position)
-start_sync	EQU	12	; sync period for easiest difficulty
+start_sync	EQU	11	; sync period for easiest difficulty
 max_difficulty	EQU	8	; highest difficulty level
 max_score	EQU	128 - start_len	; screen has 16*8=128 pixels
 
@@ -431,27 +431,25 @@ blink_tail:
 
 ;; wait_for_sync()
 ;;
-;; Waits for UserSync flag.
-;; While waiting, blinks the food by erasing and redrawing it.
+;; Flashes food using two syncs.
 wait_for_sync:
-	; clear_pixel(food_y, food_x)
 	mov	r0,[food_y]
 	mov	r6,r0
 	mov	r0,[food_x]
 	mov	r5,r0
 ; loop:
+	; clear_pixel(food_y, food_x)
 	mov	r9,r6
 	mov	r8,r5
 	gosub	clear_pixel
+	; user_sync()
+	gosub	user_sync
 	; set_pixel(food_y, food_x)
 	mov	r9,r6
 	mov	r8,r5
 	gosub	set_pixel
-	; get_user_sync()
-	gosub	get_user_sync
-	cp	r0,1
-	skip	z,1
-	jr	-13
+	; user_sync()
+	gosub	user_sync
 	ret	r0,0
 
 ;;;;
@@ -488,7 +486,7 @@ snake_init:
 	inc	r9
 	mov	[r8:r9],r0
 	ret	r0,0
-	
+
 ;; snake_len(r8:r9=snake) -> r8:r9=len
 ;;
 ;; Returns the length of the tail (excluding the head).
