@@ -12,6 +12,7 @@ def load(fname):
     with serial.Serial(PORT) as s:
         s.write(pgm)
         s.flush()
+        s.write(b'\0' * 1024) # sometimes flush doesn't seem to work. this'll fix it
 
 if len(sys.argv) <= 1:
     print("Must provide .hex file to flash!")
