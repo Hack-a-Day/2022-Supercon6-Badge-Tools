@@ -48,7 +48,7 @@ So long as your usb-to-serial adapter is allowed by the Crostini USB device whit
 
 ### Windows
 
-To send a program to the badge from a Windows machine, use the included win_flash.py Python script.
+To send a program to the badge from a Windows machine, use the win_flash.py Python script included in the top level "software" directory.
 
 ## Pseudo-operations
 
