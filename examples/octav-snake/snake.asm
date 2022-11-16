@@ -322,7 +322,8 @@ increment_score:
 	inc	r9
 	mov	r0,r9
 	mov	[score],r0
-	skip	nc,4
+	skip	c,1
+	jr	5
 ; Carry from the lowest nibble. Also increase difficulty.
 	inc	r8
 	mov	r0,r8
@@ -337,7 +338,7 @@ increment_score:
 	cp	r0,mid max_score
 	skip	z,1
 	ret	r0,1
-	; PLAYER WON! No empty squares left on the screen.
+; PLAYER WON! No empty squares left on the screen.
 	ret	r0,0
 
 ;; increase_difficulty()
