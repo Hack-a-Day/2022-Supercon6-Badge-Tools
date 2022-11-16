@@ -1,4 +1,4 @@
-TARGET:=blinky
+TARGET:=falldown
 PORT:=/dev/ttyUSB0
 ASSEMBLER:=../../assembler/assemble.py
 

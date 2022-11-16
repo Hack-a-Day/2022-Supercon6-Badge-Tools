@@ -43,6 +43,11 @@ KeyReg      EQU 0xfd
 Dimmer      EQU 0xfe
 Random      EQU 0xff
 
+; badge key aliases
+KeyLeft  EQU	0	  ; MODE
+KeyB     EQU	12	; operand y 1
+KeyRight EQU	13	; Data In
+
 ; user equs
 PlatformRows EQU 4
 
@@ -52,6 +57,11 @@ init:
 MOV R0, 0
 MOV [2:2],R0
 MOV [2:3],R0
+
+; disable other LEDs
+mov R0, [WrFlags]
+btg R0,3
+mov [WrFlags], R0
 
 mov r0, F_3_kHz; slow down a bit
 mov [Clock], r0
@@ -100,30 +110,22 @@ jr main
 mov r5, r8
 jr main
 
-key_left	EQU	9	; operand y 8
-key_up		EQU	10	; operand y 4
-key_down	EQU	11	; operand y 2
-key_right	EQU	12	; operand y 1
-
 get_badge_key:
 	mov	r0,[KeyStatus]
-	and	r0,0x1
+	and	r0,0x6
 	skip	nz,1
 	ret	r0,0xf
 	mov	r0,[KeyReg]
-	cp	r0,key_up
+	cp	r0,KeyLeft
 	skip	nz,1
-	ret	r0,0	; up
-	cp	r0,key_left
+	ret	r0,1	 ; left
+	cp	r0,KeyB
 	skip	nz,1
-	ret	r0,1	; left
-	cp	r0,key_down
+	ret	r0,2	 ; b
+	cp	r0,KeyRight
 	skip	nz,1
-	ret	r0,2	; down
-	cp	r0,key_right
-	skip	nz,1
-	ret	r0,3	; right
-	ret	r0,0xf
+	ret	r0,3	 ; right
+	ret	r0,0xf ; some other key
 
 check_keys:
 	gosub get_badge_key
