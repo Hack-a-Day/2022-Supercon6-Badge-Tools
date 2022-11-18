@@ -546,8 +546,8 @@ mov r2, 0xF  ; -1
 gosub translate
 mov r3, 1
 gosub draw
-gosub cleanup  ; comment this line out with 2 `mov r0, r0` lines to enable alternate counter. don't forget to update cleanup routine!
-gosub counter
+gosub cleanup
+gosub counter  ; comment this line out with 2 `mov r0, r0` lines to enable alternate counter. don't forget to update cleanup routine!
 jr -44
 
 
