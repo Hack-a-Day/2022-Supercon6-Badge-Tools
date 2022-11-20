@@ -1,5 +1,9 @@
 ; demons.asm
+;
 ; a simple shooter for Hackaday Supercon.6 badge
+;
+; inspired by Demon Attack by Rob Fulop, but since it's
+; a 4-bit platform, I just borrowed half the name.
 ;
 ; Copyright (C) 2022, Ben Combee
 ; released under MIT license
@@ -79,26 +83,6 @@ KeyReg      EQU 0xfd
 Dimmer      EQU 0xfe
 Random      EQU 0xff
 
-; DEMON is drawn as either *.*    .*.
-;                          .*. or *.* depending on animation frame
-
-DF0Top      EQU 0b0101
-DF0Bottom   EQU 0b0010
-DF1Top      EQU 0b0010
-DF1Bottom   EQU 0b0101
-DDieTop     EQU 0b0101
-DDieBottom  EQU 0b0101
-
-; lateral demon movement is based on a few patterns:
-;   0 straight down (0)
-;   1 slight wiggle (-1 0 +1 0)
-;   2 longer wiggle (-2 -1 0 +1 +2 +1 0 -1)
-;   3 left wiggle (-2 -1 0 -1 -2 -1 0 +1 +2 +1 0)
-;   4 right wiggle (+2 +1 0 +1 +2 +1 0 -1 -2 -1 0)
-; vertical movement varies but could be 50% down, 25% stay, 25% up
-; we try to have two demons active on screen at any time
-; when a demon gets to base row, one life is removed
-
 ; BASE is drawn as .*.
 ;                  *** offset to the current player position
 
@@ -111,7 +95,7 @@ BaseRow     EQU 12
 ; until they hit a demon or go off the top of the screen
 ;
 ; BASE POWER is a line of LEDs at the bottom, going from 4 (*.*.*.*.) to 0 (........) (the end)
-; after all lifes are used, score is drawn on screen until game restarts
+; after all lives are used, score is drawn on screen until game restarts
 
 LivesRow    EQU 15
 
@@ -148,18 +132,19 @@ GameAnim    EQU 0x68
   NoAnim    EQU 0
   WipeUp    EQU 1
   WipeDown  EQU 2
+PauseTimer  EQU 0x69    ; count of frames until input is handled
 
 ; This is the number of the first column that's shown
 ; for the logo.  It's incremented for each frame of the
 ; attract screen until it gets to 7:3, then wraps to 0:0
-LogoPosL    EQU 0x69    ; 0..3 - position within nibble
-LogoPosH    EQU 0x6A    ; 0..7 - number of nibble
+LogoPosL    EQU 0x6A    ; 0..3 - position within nibble
+LogoPosH    EQU 0x6B    ; 0..7 - number of nibble
 
 D1Row       EQU 0x80    ; 0-14, 15 means don't draw
 D1Pos       EQU 0x81    ; 0-5
 D1Pattern   EQU 0x82    ; 0-4
   PatStill  EQU 0       ; stay in same
-  PatWiggle EQU 1       ; wide back and forth
+  PatWiggle EQU 1       ; move from left to right and back
   PatJitter EQU 2       ; tight back and forth
   PatDie    EQU 3
 D1PatIdx    EQU 0x83
@@ -172,8 +157,10 @@ D2PatIdx    EQU 0x93
 ; data locations
 
 DigitTable  EQU 0x400
-DemonTable  EQU 0x500
+LogoTable   EQU 0x500
 WiggleTable EQU 0x600
+DemonTable  EQU 0x700
+DeadTable   EQU 0x780
 
 ; REGISTERS
 ;
@@ -196,7 +183,8 @@ INIT:
     gosub FLIP_PAGES
 
 LOOP:
-    ; state machine for running intermode animations
+    ; state machine for running animations
+    ; between modes
     mov r0, [GameAnim]
     cp r0, WipeUp
     skip nz, 2
@@ -272,7 +260,8 @@ SHOW_SCORE_MODE:
 ; Utility Functions
 ;
 
-LSL_16_BY_R0:       ; compute R2:R1 =  R1 << R0
+;; compute R2:R1 =  R1 << R0
+LSL_16_BY_R0:
     mov r2, 0
 LSL16_1:
     dec r0
@@ -282,14 +271,16 @@ LSL16_1:
       jr LSL16_1
     ret r0, 0
 
-LSL_8_BY_R0:        ; compute R1 = R1 << R0
+;; compute R1 = R1 << R0
+LSL_8_BY_R0:
     dec r0
     skip nc, 2
       add r1, r1
       jr LSL_8_BY_R0
     ret r0, 0
 
-LSR_8_BY_R0:        ; compute R1 = R1 >> R0, no sign extension
+;; compute R1 = R1 >> R0, no sign extension
+LSR_8_BY_R0:
     dec R0
     skip nc, 3
       and r0, 0xf   ; clears carry without disturbing r0
@@ -297,7 +288,8 @@ LSR_8_BY_R0:        ; compute R1 = R1 >> R0, no sign extension
       jr LSR_8_BY_R0
     ret r0, 0
 
-SAT_INC_BCD:        ; add 1 to BCD number in r2:r1, saturating at 99
+;; add 1 to BCD number in r2:r1, saturating at 99
+SAT_INC_BCD:
     inc r1
     mov r0, r1
     cp r0, 10
@@ -311,12 +303,14 @@ SAT_INC_BCD:        ; add 1 to BCD number in r2:r1, saturating at 99
       mov r2, 9
     ret r0, 0
 
+;; turn the panel lights on or off
 TOGGLE_PANEL:
     mov r0, [WrFlags]
     btg r0, LedsOff
     mov [WrFlags], r0
     ret r0, 0
 
+;; halt execution until UserSync is set
 WAIT_FOR_SYNC:
     mov r0, [RdFlags]
     bit r0, UserSync
@@ -324,8 +318,8 @@ WAIT_FOR_SYNC:
       jr WAIT_FOR_SYNC
     ret r0, 0
 
-GET_CONSTRAINED_RANDOM: ; r1 has closed end of random range
-                        ; ex. r1=4 means 0..4 is output
+;; get a random number in the closed range 0..r1
+GET_CONSTRAINED_RANDOM:
     mov r0, [Random]
     mov r2, r1
     sub r2, r0
@@ -338,11 +332,16 @@ GET_CONSTRAINED_RANDOM: ; r1 has closed end of random range
 ; General drawing functions
 ;
 
+;; set page register to view current drawing page
+;; before drawing more, increment [FrameNum] and call
+;; SETUP_DRAWING_PAGE
 FLIP_PAGES:
     mov r0, r3
     mov [Page], r0
     ret r0, 0
 
+;; change the drawing page depending on [FrameNum]
+;; and clear the new page to all 0
 SETUP_DRAWING_PAGE:
     mov r0, [FrameNum]
     bit r0, 0       ; test for odd/even
@@ -352,10 +351,8 @@ SETUP_DRAWING_PAGE:
     mov r3, r0      ; setup r3 with right draw page
     mov r4, r0      ; then r4 has left draw page
     inc r4          ; as r3+1
-    ; fallthrough to CLS routine
-
-CLS:
-    mov r5, 0       ; clear drawing pages
+    ; clear drawing pages
+    mov r5, 0
     mov r0, 0
 CLS_LOOP:
     mov [r3:r5], r0
@@ -365,7 +362,8 @@ CLS_LOOP:
       jr CLS_LOOP
     ret r0, 0
 
-DRAW_ROW:           ; draw data in R2:R1
+;; draw data in R2:R1 to row r5
+DRAW_ROW:
     mov r0, r1
     mov [r3:r5], r0
     mov r0, r2
@@ -376,6 +374,7 @@ DRAW_ROW:           ; draw data in R2:R1
 ; Game logic
 ;
 
+;; when lives are 0, move from active to score mode
 CHECK_LIVES:
     mov r0, [Lives]
     cp r0, 0
@@ -383,6 +382,7 @@ CHECK_LIVES:
       ret r0, 0
     goto NEXT_STATE
 
+;; adjust X position of the demons depending on their pattern
 MOVE_DEMONS_X:
     mov r0, [D1Pos]
     mov r1, r0
@@ -433,12 +433,18 @@ WIGGLE_PATTERN:
     ret r0, 0
 
 JITTER_PATTERN:
+    ; move position by +1 or -1 on alternating even frames
     mov r0, [FrameNum]
     bit r0, 0
+    skip nz, 1
+      ret r0, 0
+    bit r0, 1
     skip nz, 1
       jr INC_POSITION
     jr DEC_POSITION
 
+;; increment position value in r1, but
+;; contrain it to 0-5
 INC_POSITION:       ; r1 has pos in/out
     mov r0, r1      ; constrained to 0-5
     inc r0
@@ -448,14 +454,18 @@ INC_POSITION:       ; r1 has pos in/out
     mov r1, r0
     ret r0, 0
 
-DEC_POSITION:       ; r1 has pos in/out
-    mov r0, r1      ; constrained to 0-5
+;; decrement position value in r1, but
+;; contrain it to 0-5
+DEC_POSITION:
+    mov r0, r1
     dec r0
     skip c, 1
       mov r0, 0
     mov r1, r0
     ret r0, 0
 
+;; move the demons down randomly, but don't allow
+;; one demon to move past the other
 MOVE_DEMONS_Y:
     mov r8, MID D1Row
     mov r9, MID D2Row
@@ -477,8 +487,8 @@ MOVE_DEMON_Y:        ; r8 has demon pointer, r9 check demon pointer
     mov r0, [r8:r0]
     mov r1, r0
 
-    cp r0, 15       ; don't process hidden demons
-    skip nz, 1
+    cp r0, 14       ; don't process hidden demons
+    skip lt, 1
       ret r0, 0
     cp r0, 10       ; if we're in row 10, remove a life
     skip z, 1
@@ -494,8 +504,8 @@ DROP_DEMON:
     ; don't allow drop if it will push too close to other demon
     mov r0, LOW D1Row
     mov r0, [r9:r0]
-    add r0, 14
-    mov r2, r0      ; r2 is d2.row - 2
+    add r0, 13
+    mov r2, r0      ; r2 is d2.row - 3
     sub r2, r1      ; compare to d1.row in r1
     skip nz, 1      ; if equal, return early
       ret r0, 0
@@ -505,6 +515,8 @@ DROP_DEMON:
     mov [r8:r1], r0
     ret r0, 0
 
+;; move the shot up one row if it's on screen and check
+;; for collisions with the two demons
 MOVE_SHOT:
     mov r0, [ShotRow]
     cp r0, 15
@@ -519,10 +531,13 @@ MOVE_SHOT:
     mov r0, [ShotPos]
     mov r2, r0      ; ShotPos in r2
 
+    ; we want a collision if the shot is in the same position as
+    ; the demon and either on the same row or one below.
 CHECK_D1:
     mov r0, [D1Row]
     sub r0, r1
-    skip z, 1
+    cp r0, 2
+    skip lt, 1
       jr CHECK_D2
     mov r0, [D1Pos]
     sub r0, r2
@@ -538,7 +553,8 @@ CHECK_D1:
 CHECK_D2:
     mov r0, [D2Row]
     sub r0, r1
-    skip z, 1
+    cp r0, 2
+    skip lt, 1
       ret r0, 0
     mov r0, [D2Pos]
     sub r0, r2
@@ -554,15 +570,15 @@ CHECK_D2:
 ADD_DEMON_IF_NEEDED:
     ; if D1 or D2 is on row 15
     ; then look if the other is
-    ; past row 3.
+    ; past row 4.
 ADD_CHK_D1:
     mov r0, [D1Row]
     cp r0, 15           ; if this bird isn't visible
     skip z, 1
       jr ADD_CHK_D2
-    mov r0, [D2Row]     ; and other bird is past row 3
-    cp r0, 3
-    skip c, 1
+    mov r0, [D2Row]     ; and other bird is past row 4
+    cp r0, 4
+    skip gte, 1
       ret r0, 0         ; if we can't add, exit
     mov r8, MID D1Row
     jr GENERATE_RANDOM_DEMON
@@ -572,9 +588,9 @@ ADD_CHK_D2:
     cp r0, 15           ; if this bird isn't visible
     skip z, 1
       ret r0, 0
-    mov r0, [D1Row]     ; and other bird is past row 3
-    cp r0, 3
-    skip c, 1
+    mov r0, [D1Row]     ; and other bird is past row 4
+    cp r0, 4
+    skip gte, 1
       ret r0, 0
     mov r8, MID D2Row
     ; fallthrough to GENERATE_RANDOM_DEMON
@@ -652,11 +668,11 @@ NEXT_STATE:
     ret r0, 0
 
 SETUP_ATTRACT_STATE:
-    ; both demons wiggling back and forth on row 0 and 3
+    ; both demons wiggling back and forth on row 0 and 4
     ; in attract mode, patterns won't change
     mov r0, 0
     mov [D1Row], r0
-    mov r0, 3
+    mov r0, 4
     mov [D2Row], r0
     ; don't need to set pos as that will be set by
     ; wiggle pattern and index
@@ -667,6 +683,7 @@ SETUP_ATTRACT_STATE:
     mov [D1PatIdx], r0
     mov [LogoPosL], r0
     mov [LogoPosH], r0
+    mov [PauseTimer], r0
     mov r0, 5
     mov [D2PatIdx], r0
 
@@ -683,6 +700,8 @@ SETUP_ACTIVE_STATE:
     mov r0, 0
     mov [ScoreLow], r0
     mov [ScoreHigh], r0
+    mov [PauseTimer], r0
+
     mov r0, NumLives
     mov [Lives], r0
 
@@ -701,7 +720,7 @@ SETUP_SHOW_SCORE_STATE:
     mov [D1Row], r0
     mov r0, 4
     mov [D1Pos], r0
-    mov r0, 12
+    mov r0, 11
     mov [D2Row], r0
     mov r0, 0
     mov [D2Pos], r0
@@ -710,6 +729,8 @@ SETUP_SHOW_SCORE_STATE:
     mov [D2Pattern], r0
     mov r0, NumLives
     mov [Lives], r0
+    mov r0, 8
+    mov [PauseTimer], r0
     ret r0, 0
 
 ;
@@ -717,48 +738,59 @@ SETUP_SHOW_SCORE_STATE:
 ;
 
 DRAW_DEMON:         ; have demon row in r5, position in r6
-    mov r0, r5      ; skip drawing if in row 15
-    cp r0, 15
-    skip nz, 1
+    mov r0, r5      ; skip drawing if in row 14 or 15
+    cp r0, 14
+    skip lt, 1
       ret r0, 0
 
-    mov r1, DF0Top
-    mov r0, [FrameNum]
-    bit r0, 1
-    skip z, 1
-      mov r1, DF1Top
+    mov r0, [FrameNum]  ; r7 = FrameNum & 3
+    and r0, 0b0011
+    mov r7, r0
+
+    mov pch, HIGH DemonTable
+    mov pcm, r7
+    mov jsr, 0
+    mov r1, r0
     mov r0, r6
     gosub LSL_16_BY_R0
     gosub DRAW_ROW
 
     inc r5
-    mov r1, DF0Bottom
-    mov r0, [FrameNum]
-    bit r0, 1
-    skip z, 1
-      mov r1, DF1Bottom
+    mov pch, HIGH DemonTable
+    mov pcm, r7
+    mov jsr, 1
+    mov r1, r0
+    mov r0, r6
+    gosub LSL_16_BY_R0
+    gosub DRAW_ROW
+
+    inc r5
+    mov pch, HIGH DemonTable
+    mov pcm, r7
+    mov jsr, 2
+    mov r1, r0
     mov r0, r6
     gosub LSL_16_BY_R0
     gosub DRAW_ROW
 
     ret r0, 0
 
-DRAW_DEAD_DEMON:
-    mov r0, r5      ; skip drawing if in row 15
-    cp r0, 15
-    skip nz, 1
+DRAW_DEAD_DEMON:    ; have demon row in r5, position in r6
+    mov r0, r5      ; skip drawing if in row 14 or 15
+    cp r0, 14
+    skip lt, 1
       ret r0, 0
 
-    mov r1, DDieTop
+    ; draw explosion as all 1s
+    mov r1, 0b0111
     mov r0, r6
     gosub LSL_16_BY_R0
+    gosub DRAW_ROW
+    inc r5
+    gosub DRAW_ROW
+    inc r5
     gosub DRAW_ROW
 
-    inc r5
-    mov r1, DDieBottom
-    mov r0, r6
-    gosub LSL_16_BY_R0
-    gosub DRAW_ROW
     ret r0, 0
 
 DRAW_DEMONS:        ; draw both demons with lifetime checking
@@ -879,7 +911,7 @@ DRAW_SCORE_LOOP:
     ret r0, 0
 
 DRAW_DEMON_LOGO:
-    mov r5, 7       ; drawing row
+    mov r5, 10      ; drawing row
     mov r8, 0       ; row counter
                     ; r7 used as temp
 
@@ -887,7 +919,7 @@ DRAW_DEMON_LOGO_LOOP:
     ; compute the LEFT as
     ; DT:Row:PosH << PosL | DT:Row:PosL+1 >> (4-PosL)
 
-    mov pch, HIGH DemonTable
+    mov pch, HIGH LogoTable
     mov pcm, r8
     mov r0, [LogoPosH]
     mov jsr, r0
@@ -897,7 +929,7 @@ DRAW_DEMON_LOGO_LOOP:
     gosub LSL_8_BY_R0
     mov r7, r1          ; R7 = R1 >> PosL
 
-    mov pch, HIGH DemonTable
+    mov pch, HIGH LogoTable
     mov pcm, r8
     mov r0, [LogoPosH]
     inc r0
@@ -916,7 +948,7 @@ DRAW_DEMON_LOGO_LOOP:
     ; compute the RIGHT as
     ; DT:Row:PosH+1 << PosL | DT:Row:PosH+2 >> (4-PosL)
 
-    mov pch, HIGH DemonTable
+    mov pch, HIGH LogoTable
     mov pcm, r8
     mov r0, [LogoPosH]
     inc r0
@@ -927,7 +959,7 @@ DRAW_DEMON_LOGO_LOOP:
     gosub LSL_8_BY_R0
     mov r7, r1          ; R7 = R1 >> PosL
 
-    mov pch, HIGH DemonTable
+    mov pch, HIGH LogoTable
     mov pcm, r8
     mov r0, [LogoPosH]
     add r0, 2
@@ -985,6 +1017,12 @@ INC_LOGO_POS:
 ;
 
 CHECK_INPUT:
+    ; if PauseTimer > 0, decrement it and return early
+    mov r0, [PauseTimer]
+    dec r0
+    skip nc, 1
+      mov [PauseTimer], r0
+
     ; if game mode isn't active, most key presses
     ; will jump to next mode
     mov r0, [GameState]
@@ -1005,6 +1043,13 @@ CHECK_INPUT:
     cp r0, Btn_Opc_2        ; DEBUG - lose life
     skip nz, 2
         goto DEC_LIVES
+
+    mov r1, r0              ; return early if PauseTimer != 0
+    mov r0, [PauseTimer]
+    dec r0
+    skip nc, 1
+      ret r0, 0
+    mov r0, r1
 
     cp r0, Btn_Y_8          ; move left
     skip nz, 1
@@ -1060,7 +1105,7 @@ FIRE_SHOT:                  ; game state in r2
 ; DATA TABLES
 ;
 
-    ORG DigitTable
+    ORG DigitTable + 0x00
     NIBBLE 0b0111
     NIBBLE 0b0101
     NIBBLE 0b0101
@@ -1121,10 +1166,10 @@ FIRE_SHOT:                  ; game state in r2
     NIBBLE 0b0001
     NIBBLE 0b0111
 
-    ORG DemonTable  ; DEMON logo
-                    ; organized as 5 lines of 14 nibbles
-                    ; leading and trailing 2 nibbles are blank
-                    ; to make scrolling look continuous
+    ; organized as 5 lines of 14 nibbles
+    ; leading and trailing 2 nibbles are blank
+    ; to make scrolling look continuous
+    ORG LogoTable + 0x00
     NIBBLE 0b0000
     NIBBLE 0b0000
     NIBBLE 0b1110
@@ -1139,7 +1184,7 @@ FIRE_SHOT:                  ; game state in r2
     NIBBLE 0b0100
     NIBBLE 0b0000
     NIBBLE 0b0000
-    ORG DemonTable + 0x10
+    ORG LogoTable + 0x10
     NIBBLE 0b0000
     NIBBLE 0b0000
     NIBBLE 0b1001
@@ -1154,7 +1199,7 @@ FIRE_SHOT:                  ; game state in r2
     NIBBLE 0b1010
     NIBBLE 0b0000
     NIBBLE 0b0000
-    ORG DemonTable + 0x20
+    ORG LogoTable + 0x20
     NIBBLE 0b0000
     NIBBLE 0b0000
     NIBBLE 0b1001
@@ -1169,7 +1214,7 @@ FIRE_SHOT:                  ; game state in r2
     NIBBLE 0b1101
     NIBBLE 0b0000
     NIBBLE 0b0000
-    ORG DemonTable + 0x30
+    ORG LogoTable + 0x30
     NIBBLE 0b0000
     NIBBLE 0b0000
     NIBBLE 0b1001
@@ -1184,7 +1229,7 @@ FIRE_SHOT:                  ; game state in r2
     NIBBLE 0b1001
     NIBBLE 0b0000
     NIBBLE 0b0000
-    ORG DemonTable + 0x40
+    ORG LogoTable + 0x40
     NIBBLE 0b0000
     NIBBLE 0b0000
     NIBBLE 0b1110
@@ -1211,3 +1256,24 @@ FIRE_SHOT:                  ; game state in r2
     NIBBLE 3
     NIBBLE 2
     NIBBLE 1
+
+    ; organized by frame (0-3) and pos (0-3)
+    ORG DemonTable + 0x00
+    NIBBLE 0b0101
+    NIBBLE 0b0010
+    NIBBLE 0b0000
+
+    ORG DemonTable + 0x10
+    NIBBLE 0b0000
+    NIBBLE 0b0111
+    NIBBLE 0b0000
+
+    ORG DemonTable + 0x20
+    NIBBLE 0b0000
+    NIBBLE 0b0010
+    NIBBLE 0b0101
+
+    ORG DemonTable + 0x30
+    NIBBLE 0b0000
+    NIBBLE 0b0111
+    NIBBLE 0b0000
