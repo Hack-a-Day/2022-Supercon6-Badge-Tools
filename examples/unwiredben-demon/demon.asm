@@ -183,16 +183,6 @@ INIT:
     gosub FLIP_PAGES
 
 LOOP:
-    ; state machine for running animations
-    ; between modes
-    mov r0, [GameAnim]
-    cp r0, WipeUp
-    skip nz, 2
-      goto WIPE_UP
-    cp r0, WipeDown
-    skip nz, 2
-      goto WIPE_DOWN
-FINISH_ANIM:
     ; state machine for running game modes
     mov r0, [GameState]
     cp r0, Attract
@@ -209,6 +199,17 @@ FINISH_MODE:
     gosub CHECK_INPUT
     gosub CHECK_LIVES
 
+    ; state machine for running animations
+    ; between modes
+    mov r0, [GameAnim]
+    cp r0, WipeUp
+    skip nz, 2
+      goto WIPE_UP
+    cp r0, WipeDown
+    skip nz, 2
+      goto WIPE_DOWN
+FINISH_ANIM:
+
     mov r0, [FrameNum]  ; increment FrameNum
     inc r0
     mov [FrameNum], r0
@@ -218,11 +219,49 @@ FINISH_MODE:
     jr LOOP
 
 WIPE_UP:
-    ; FIXME - implement wipe up animation
+    mov r5, 15
+    mov r0, S_40_Hz         ; run at 40 fps for animation
+    mov [Sync], r0
+WIPE_UP_LOOP:
+    mov r0, 0b1111
+    mov r1, r0
+    mov r2, r0
+    gosub DRAW_ROW
+    gosub WAIT_FOR_SYNC
+    mov r0, 0b0000
+    mov r1, r0
+    mov r2, r0
+    gosub DRAW_ROW
+    dec r5
+    skip nc, 1
+      jr WIPE_UP_LOOP
+    mov r0, NoAnim
+    mov [GameAnim], r0
+    mov r0, S_10_Hz         ; run at 10 fps
+    mov [Sync], r0
     jr FINISH_ANIM
 
 WIPE_DOWN:
-    ; FIXME - implement wipe down animation
+    mov r5, 0
+    mov r0, S_40_Hz         ; run at 40 fps for animation
+    mov [Sync], r0
+WIPE_DOWN_LOOP:
+    mov r0, 0b1111
+    mov r1, r0
+    mov r2, r0
+    gosub DRAW_ROW
+    gosub WAIT_FOR_SYNC
+    mov r0, 0b0000
+    mov r1, r0
+    mov r2, r0
+    gosub DRAW_ROW
+    inc r5
+    skip z, 1
+      jr WIPE_DOWN_LOOP
+    mov r0, NoAnim
+    mov [GameAnim], r0
+    mov r0, S_10_Hz         ; run at 10 fps
+    mov [Sync], r0
     jr FINISH_ANIM
 
 ATTRACT_MODE:
