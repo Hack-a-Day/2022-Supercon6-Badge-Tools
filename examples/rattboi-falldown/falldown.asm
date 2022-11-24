@@ -1,3 +1,25 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;
+; Falldown
+; by Bradon Kanyid / Rattboi
+; MIT License 2022
+;
+; Falldown game
+; 
+; Badge Controls:
+;   mode        : Left
+;   data in     : Right
+;   operand y 1 : Restart
+; 
+; Also can be controlled via inputs on IN port (like the NSS controller)
+;   bit 0: Left
+;   bit 1: Right
+;   bit 2: Restart
+;
+; Demo video: https://www.youtube.com/watch?v=X-XJmlMLx7k&t=2900s
+;
+; https://github.com/rattboi/2022-Supercon6-Badge-Tools
+;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ; symbols for special registers
 Page        EQU 0xf0
 Clock       EQU 0xf1
@@ -50,13 +72,18 @@ KeyRight EQU	13	; Data In
 
 ; user equs
 PlatformRows EQU 4
+ScorePage  EQU 2
+ScoreLo    EQU 0
+ScoreUp    EQU 1
+HiScoreLo  EQU 2
+HiScoreUp  EQU 3
 
 ; init
 init: 
 	; initialize high score
 	MOV R0, 0
-	MOV [2:2],R0
-	MOV [2:3],R0
+	MOV [ScorePage:2],R0
+	MOV [ScorePage:3],R0
 
 	; disable other LEDs
 	MOV R0, [WrFlags]
@@ -69,8 +96,8 @@ init:
 game_start:
 	;initialize score
 	MOV R0, 0
-	MOV [2:0],R0
-	MOV [2:1],R0
+	MOV [ScorePage:0],R0
+	MOV [ScorePage:1],R0
 
 	MOV R5, 4 ; page
 	MOV R2, 0 ; storage for the ball's bit
@@ -351,7 +378,7 @@ collision:
 
 dead:
 	MOV R8, 15
-	GOSUB save_high_score
+	GOSUB check_high_score
 	CP R0, 1
 	SKIP NZ, 1
 	JR hs_loop
@@ -405,43 +432,42 @@ update_score:
 	EXR 0
 	MOV R0, 0
 	MOV R3, R0
-	MOV R0, [2:0] ; low nibble
+	MOV R0, [ScorePage:ScoreLo] ; low nibble
 	MOV R1, R0
-	MOV R0, [2:1] ; high nibble
+	MOV R0, [ScorePage:ScoreUp] ; high nibble
 	INC R1
 	ADC R0, R3 ; 8-bit increment (add zero, with carry)
 	; score = (r0:r1)
-	MOV [2:1], R0
+	MOV [ScorePage:ScoreUp], R0
 	MOV R0, R1
-	MOV [2:0], R0
+	MOV [ScorePage:ScoreLo], R0
 	EXR 0
 	RET R0, 0
 
-save_high_score:
+check_high_score:
 	EXR 0
-	MOV R0, [2:0] ; load curr score into r3:r4
+	MOV R0, [ScorePage:ScoreLo] ; load curr score into r3:r4
 	MOV R4, R0
-	MOV R0, [2:1]
+	MOV R0, [ScorePage:ScoreUp]
 	MOV R3, R0
-	MOV R0, [2:2] ; load high score into r1:r2
+	MOV R0, [ScorePage:HiScoreLo] ; load high score into r1:r2
 	MOV R2, R0
-	MOV R0, [2:3]
+	MOV R0, [ScorePage:HiScoreUp]
 	MOV R1, R0
 
 	SUB R2,R4
 	SKIP C, 3
 	SBB R1,R3
 	SKIP C, 1
-	JR set_high_score
+	JR chs_set
 	EXR 0
 	RET r0, 0
-
-set_high_score:
-	MOV R0, [2:0] ; load curr score into r4:r3
+chs_set:
+	MOV R0, [ScorePage:ScoreLo] ; load curr score into r4:r3
 	MOV R1, R0
-	MOV R0, [2:1]
-	MOV [2:3], R0
+	MOV R0, [ScorePage:ScoreUp]
+	MOV [ScorePage:HiScoreUp], R0
 	MOV R0, R1
-	MOV [2:2], R0
+	MOV [ScorePage:HiScoreLo], R0
 	EXR 0
 	RET R0, 1
