@@ -53,266 +53,241 @@ PlatformRows EQU 4
 
 ; init
 init: 
-; initialize high score
-MOV R0, 0
-MOV [2:2],R0
-MOV [2:3],R0
+	; initialize high score
+	MOV R0, 0
+	MOV [2:2],R0
+	MOV [2:3],R0
 
-; disable other LEDs
-mov R0, [WrFlags]
-btg R0,3
-mov [WrFlags], R0
+	; disable other LEDs
+	MOV R0, [WrFlags]
+	BTG R0,3
+	MOV [WrFlags], R0
 
-mov r0, F_3_kHz; slow down a bit
-mov [Clock], r0
+	MOV R0, F_3_kHz; slow down a bit
+	MOV [Clock], R0
 
 game_start:
-;initialize score
-MOV R0, 0
-MOV [2:0],R0
-MOV [2:1],R0
+	;initialize score
+	MOV R0, 0
+	MOV [2:0],R0
+	MOV [2:1],R0
 
-mov r5, 4 ; page
-mov r2, 0 ; storage for the ball's bit
+	MOV R5, 4 ; page
+	MOV R2, 0 ; storage for the ball's bit
 
-mov r0,r5  ; go to display page
-mov [Page], r0
+	MOV R0,R5  ; go to display page
+	MOV [Page], R0
 
-mov r6, 3
-mov r7, 13
-mov r8, PlatformRows
-mov r5, r8
-mov r9, r6 ; r9 = last position
+	MOV R6, 3
+	MOV R7, 13
+	MOV R8, PlatformRows
+	MOV R5, R8
+	MOV R9, R6 ; R9 = LAST POSITION
 
 main:
-gosub check_keys
-gosub erase_char
-mov r9, r6 ; update last x-pos
-gosub update_char
-cp r0, 1
-skip nz, 2 ; skip 2 because `goto` is actually two instructions
-goto game_start
-gosub draw_char
+	GOSUB check_keys
+	GOSUB erase_char
+	MOV R9, R6 ; update last x-pos
+	GOSUB update_char
+	CP R0, 1
+	SKIP NZ, 2 ; skip 2 because `goto` is actually two instructions
+	GOTO game_start
+	GOSUB draw_char
 
-; generate next row
-gosub generate_row
-mov r0, r1 ; set_bottom_row uses r0/r1 as the nibbles to display
-mov r1, r2
-gosub set_bottom_row
+	; generate next row
+	GOSUB generate_row
+	MOV R0, R1 ; set_bottom_row uses r0/r1 as the nibbles to display
+	MOV R1, R2
+	GOSUB set_bottom_row
 
-gosub shift_screen_up
-gosub update_score
+	GOSUB shift_screen_up
+	GOSUB update_score
 
-mov r0, r5 ; r5 = how often to generate new row
-cp r0, 0
-skip z, 1
-jr main
-mov r5, r8
-jr main
+	MOV R0, R5 ; r5 = how often to generate new row
+	CP R0, 0
+	SKIP Z, 1
+	JR main
+	MOV R5, R8
+	JR main
 
 get_badge_key:
-	mov	r0,[KeyStatus]
-	and	r0,0x6
-	skip	nz,1
-	ret	r0,0xf
-	mov	r0,[KeyReg]
-	cp	r0,KeyLeft
-	skip	nz,1
-	ret	r0,1	 ; left
-	cp	r0,KeyB
-	skip	nz,1
-	ret	r0,2	 ; b
-	cp	r0,KeyRight
-	skip	nz,1
-	ret	r0,3	 ; right
-	ret	r0,0xf ; some other key
+	MOV R0,[KeyStatus]
+	AND R0,0x6
+	SKIP NZ,1
+	RET R0,0xF
+	MOV R0,[KeyReg]
+	CP R0,KeyLeft
+	SKIP NZ,1
+	RET R0,1 ; left
+	CP R0,KeyB
+	SKIP NZ,1
+	RET R0,2 ; b
+	CP R0,KeyRight
+	SKIP NZ,1
+	RET R0,3 ; right
+	RET R0,0xf ; some other key
 
 check_keys:
-	gosub get_badge_key
-	cp r0, 0xf ; no key pressed
-	skip nz, 1 ; some key is pressed, so skip
-	jr check_in  ; no badge key pressed, so now try IN port (Nintendo Super System)
+	GOSUB get_badge_key
+	CP R0, 0xf ; no key pressed
+	SKIP NZ, 1 ; some key is pressed, so skip
+	JR check_in  ; no badge key pressed, so now try IN port (Nintendo Super System)
 ; check which badge key
-	cp r0, 1 ; left 
-	skip nz, 1
-	jr ck_left
-	cp r0, 3 ; right
-	skip nz, 1
-	jr ck_right
-	cp r0, 2 ; b
-	skip nz, 1
-	jr ck_b
+	CP R0, 1 ; left 
+	SKIP NZ, 1
+	JR ck_left
+	CP R0, 3 ; right
+	SKIP NZ, 1
+	JR ck_right
+	CP R0, 2 ; b
+	SKIP NZ, 1
+	JR ck_b
 
 check_in:
-bit r3, 0  ; r3 is actually "in" reg
-skip nz, 1
-jr ck_left
-bit r3, 1
-skip nz, 1
-jr ck_right
-bit r3, 2
-skip nz, 1
-jr ck_b
-ret r0, 0
+	BIT R3, 0  ; r3 is actually "in" reg
+	SKIP NZ, 1
+	JR ck_left
+	BIT R3, 1
+	SKIP NZ, 1
+	JR ck_right
+	BIT R3, 2
+	SKIP NZ, 1
+	JR ck_b
+	RET R0, 0
 
 ck_b:
-mov r0, PlatformRows
-mov r8, r0
-ret r0, 0
+	MOV R0, PlatformRows
+	MOV R8, R0
+	RET R0, 0
 
 ck_right:
-mov r0, r6
-cp r0, 7
-skip z, 1
-inc r6
-ret r0, 0
+	MOV R0, R6
+	CP R0, 7
+	SKIP Z, 1
+	INC R6
+	RET R0, 0
 
 ck_left:
-mov r0, r6
-cp r0, 0
-skip z, 1
-dec r6
-ret r0, 0
+	MOV R0, R6
+	CP R0, 0
+	SKIP Z, 1
+	DEC R6
+	RET R0, 0
 
 set_bottom_row:
-MOV R4,15 ; initial dest row
-MOV R2,4  ; original page 1
-MOV R3,5  ; original page 2
-MOV [R2:R4],R0
-MOV R0, R1
-MOV [R3:R4],R0
-RET R0, 0
+	MOV R4,15 ; initial dest row
+	MOV R2,4  ; original page 1
+	MOV R3,5  ; original page 2
+	MOV [R2:R4],R0
+	MOV R0, R1
+	MOV [R3:R4],R0
+	RET R0, 0
 
 shift_screen_up:
-; shift all rows down by one
-EXR 0
-MOV R6,1  ; initial src row
-MOV R7,0  ; initial dest row
-MOV R1,4  ; original page 1
-MOV R2,5  ; original page 2
-MOV R8,15 ; number of rows to copy
-loop:
-MOV R0,[R1:R6] 
-MOV [R1:R7],R0
-MOV R0,[R2:R6]
-MOV [R2:R7],R0
-INC R6
-INC R7
-DSZ R8
-JR loop
-
-EXR 0
-RET R0, 0
+	; shift all rows down by one
+	EXR 0
+	MOV R6,1  ; initial src row
+	MOV R7,0  ; initial dest row
+	MOV R1,4  ; original page 1
+	MOV R2,5  ; original page 2
+	MOV R8,15 ; number of rows to copy
+ssu_loop:
+	MOV R0,[R1:R6]
+	MOV [R1:R7],R0
+	MOV R0,[R2:R6]
+	MOV [R2:R7],R0
+	INC R6
+	INC R7
+	DSZ R8
+	JR ssu_loop
+	EXR 0
+	RET R0, 0
 
 generate_row:
-DEC R5
-SKIP Z, 1  
-JR gr_nz
-and r0, 0 ; clear carry
-mov r0,[Random]
-rrc r0  ; logical shift right
-mov r1, 1
-mov r2, 0
-cp r0, 0
-skip nz, 1
-jr gr_rnd_z
+	DEC R5
+	SKIP Z, 1
+	JR gr_nz
+	AND R0, 0 ; clear carry
+	MOV R0,[Random]
+	RRC R0  ; logical shift right
+	MOV R1, 1
+	MOV R2, 0
+	CP R0, 0
+	SKIP NZ, 1
+	JR gr_rnd_z
 gr_shift: ; 8-bit left shift by r0 bits
-add R1, R1
-adc R2, R2
-dsz r0
-jr gr_shift
+	ADD R1, R1
+	ADC R2, R2
+	DSZ R0
+	JR gr_shift
 gr_rnd_z:
-MOV R0, R1 ; complement r1
-XOR R0, 0xF
-MOV R1, R0
-MOV R0, R2 ; complement r2
-XOR R0, 0xF
-MOV R2, R0
-RET R0, 0
+	MOV R0, R1 ; complement r1
+	XOR R0, 0xF
+	MOV R1, R0
+	MOV R0, R2 ; complement r2
+	XOR R0, 0xF
+	MOV R2, R0
+	RET R0, 0
 gr_nz:
-MOV R1, 0   
-MOV R2, 0   
-RET R0, 0
-
-calculate_pos:
-EXR 6
-MOV R5, R6
-MOV R4, 0b1000
-MOV R3, 0b0000
-mov r0, r5
-cp r0, 0
-skip nz, 1
-jr cp_xpos_z
-cp_shiftloop:
-AND R0, 0
-RRC R4
-RRC R3
-DSZ R5
-JR cp_shiftloop
-cp_xpos_z:
-MOV R0, R4
-MOV [1:0],R0 ; write left-side to [1:0]
-INC R2
-MOV R0, R3
-MOV [1:1],R0 ; write right-side to [1:1]
-EXR 6
-RET R0, 0
+	MOV R1, 0
+	MOV R2, 0
+	RET R0, 0
 
 draw_char:
-EXR 6
-MOV R5, R6
-MOV R1, 4
-MOV R2, 5
-MOV R4, 0b1000
-MOV R3, 0b0000
-mov r0, r5
-cp r0, 0
-skip nz, 1
-jr dc_xpos_z
+	EXR 6
+	MOV R5, R6
+	MOV R1, 4
+	MOV R2, 5
+	MOV R4, 0b1000
+	MOV R3, 0b0000
+	MOV R0, R5
+	CP R0, 0
+	SKIP NZ, 1
+	JR dc_xpos_z
 dc_shiftloop:
-AND R0, 0
-RRC R4
-RRC R3
-DSZ R5
-JR dc_shiftloop
+	AND R0, 0
+	RRC R4
+	RRC R3
+	DSZ R5
+	JR dc_shiftloop
 dc_xpos_z:
-MOV R0,[R2:R7]
-OR R0,R4
-MOV [R2:R7],R0
-MOV R0,[R1:R7]
-OR R0,R3
-MOV [R1:R7],R0
-EXR 6
-RET R0, 0
+	MOV R0,[R2:R7]
+	OR R0,R4
+	MOV [R2:R7],R0
+	MOV R0,[R1:R7]
+	OR R0,R3
+	MOV [R1:R7],R0
+	EXR 6
+	RET R0, 0
 
 erase_char:
-EXR 6
-MOV R5, R9
-MOV R1, 4
-MOV R2, 5
-MOV R4, 0b1000
-MOV R3, 0b0000
-mov r0, r5
-cp r0, 0
-skip nz, 1
-jr ec_xpos_z
+	EXR 6
+	MOV R5, R9
+	MOV R1, 4
+	MOV R2, 5
+	MOV R4, 0b1000
+	MOV R3, 0b0000
+	MOV R0, R5
+	CP R0, 0
+	SKIP NZ, 1
+	JR ec_xpos_z
 ec_shiftloop:
-AND R0, 0
-RRC R4
-RRC R3
-DSZ R5
-JR ec_shiftloop
+	AND R0, 0
+	RRC R4
+	RRC R3
+	DSZ R5
+	JR ec_shiftloop
 ec_xpos_z:
-MOV R5,R7
-DEC R5
-MOV R0,[R2:R5]
-XOR R0,R4
-MOV [R2:R5],R0
-MOV R0,[R1:R5]
-XOR R0,R3
-MOV [R1:R5],R0
-EXR 6
-RET R0, 0
+	MOV R5,R7
+	DEC R5
+	MOV R0,[R2:R5]
+	XOR R0,R4
+	MOV [R2:R5],R0
+	MOV R0,[R1:R5]
+	XOR R0,R3
+	MOV [R1:R5],R0
+	EXR 6
+	RET R0, 0
 
 update_char:
 	EXR 6
@@ -321,10 +296,10 @@ update_char:
 	MOV R2, 5
 	MOV R4, 0b1000
 	MOV R3, 0b0000
-	mov r0, r5
-	cp r0, 0
-	skip nz, 1
-	jr uc_xpos_z
+	MOV R0, R5
+	CP R0, 0
+	SKIP NZ, 1
+	JR uc_xpos_z
 uc_shiftloop:
 	AND R0, 0
 	RRC R4
@@ -334,8 +309,7 @@ uc_shiftloop:
 uc_xpos_z:
 	MOV R5,R7
 	INC R5
-
-; get left side, and invert
+	; get left side, and invert
 	MOV R0,R4
 	CP R0, 0
 	SKIP NZ, 1
@@ -343,11 +317,11 @@ uc_xpos_z:
 	MOV R0,[R2:R5] ;0000
 	XOR R0, 0xF    ;1111
 	AND R0,R4      ;0100 = 0000 = z = collision
-	SKIP NZ, 1    
+	SKIP NZ, 1
 	JR collision
 
 uc_testright:
-; get right side and invert
+	; get right side and invert
 	MOV R0,R3
 	CP R0, 0
 	SKIP NZ, 1
@@ -376,98 +350,98 @@ collision:
 	RET R0, 0
 
 dead:
-	mov r8, 15
-	gosub save_high_score
-	cp r0, 1
-	skip nz, 1
-	jr hs_loop
+	MOV R8, 15
+	GOSUB save_high_score
+	CP R0, 1
+	SKIP NZ, 1
+	JR hs_loop
 d_loop:
-	mov r0, 15 ; set to full bar
-	mov r1, 15 
-	gosub set_bottom_row
-	gosub shift_screen_up
-	dsz r8
+	MOV R0, 15 ; set to full bar
+	MOV R1, 15
+	GOSUB set_bottom_row
+	GOSUB shift_screen_up
+	DSZ R8
 	JR d_loop
-	jr d_check_button
+	JR d_check_button
 hs_loop:
-	mov r6, 10 ; set to checkboard pattern
+	MOV R6, 10 ; set to checkboard pattern
 hs_inner:
-	mov r0, r6
-	mov r1, r0
-	gosub set_bottom_row
-	gosub shift_screen_up
-	mov r0, r6
-	xor r0, 0xF
-	mov r6, r0
-	dsz r8
+	MOV R0, R6
+	MOV R1, R0
+	GOSUB set_bottom_row
+	GOSUB shift_screen_up
+	MOV R0, R6
+	XOR R0, 0xF
+	MOV R6, R0
+	DSZ R8
 	JR hs_inner
 d_check_button:
-	gosub get_badge_key
-	cp r0, 0xf ; no key pressed
-	skip nz, 1 ; some key is pressed, so skip
-	jr d_check_in  ; no badge key pressed, so now try IN port (Nintendo Super System)
+	GOSUB get_badge_key
+	CP R0, 0xf ; no key pressed
+	SKIP NZ, 1 ; some key is pressed, so skip
+	JR d_check_in  ; no badge key pressed, so now try IN port (Nintendo Super System)
 ; check which badge key
-	cp r0, 2 ; b
-	skip nz, 1
-	jr d_button_pushed
+	CP R0, 2 ; b
+	SKIP NZ, 1
+	JR d_button_pushed
 d_check_in:
-bit r3, 2
-skip z, 1
-JR d_check_button
+	BIT R3, 2
+	SKIP Z, 1
+	JR d_check_button
 d_button_pushed:
-; clear screen before restarting
-mov r8, 15
+	; clear screen before restarting
+	MOV R8, 15
 d_clearscreen_loop:
-mov r0, 00 ; set to empty
-mov r1, 00
-gosub set_bottom_row
-gosub shift_screen_up
-dsz r8
-JR d_clearscreen_loop
-EXR 6
-RET R0,1
+	MOV R0, 00 ; set to empty
+	MOV R1, 00
+	GOSUB set_bottom_row
+	GOSUB shift_screen_up
+	DSZ R8
+	JR d_clearscreen_loop
+	EXR 6
+	RET R0,1
 
 update_score:
-EXR 0
-mov r0, 0
-mov r3, r0
-MOV r0, [2:0] ; low nibble
-MOV r1, r0 
-MOV r0, [2:1] ; high nibble
-INC r1
-ADC r0, r3 ; 8-bit increment (add zero, with carry)
-; score = (r0:r1)
-MOV [2:1], r0
-MOV r0, r1
-MOV [2:0], r0
-EXR 0
-RET r0, 0
+	EXR 0
+	MOV R0, 0
+	MOV R3, R0
+	MOV R0, [2:0] ; low nibble
+	MOV R1, R0
+	MOV R0, [2:1] ; high nibble
+	INC R1
+	ADC R0, R3 ; 8-bit increment (add zero, with carry)
+	; score = (r0:r1)
+	MOV [2:1], R0
+	MOV R0, R1
+	MOV [2:0], R0
+	EXR 0
+	RET R0, 0
 
 save_high_score:
-EXR 0
-MOV r0, [2:0] ; load curr score into r3:r4
-MOV r4, r0
-MOV r0, [2:1]
-MOV r3, r0
-MOV r0, [2:2] ; load high score into r1:r2
-MOV r2, r0
-MOV r0, [2:3]
-MOV r1, r0
+	EXR 0
+	MOV R0, [2:0] ; load curr score into r3:r4
+	MOV R4, R0
+	MOV R0, [2:1]
+	MOV R3, R0
+	MOV R0, [2:2] ; load high score into r1:r2
+	MOV R2, R0
+	MOV R0, [2:3]
+	MOV R1, R0
 
-sub r2,r4
-skip c, 3
-sbb r1,r3
-skip c, 1
-JR set_high_score
-EXR 0
-RET r0, 0
+	SUB R2,R4
+	SKIP C, 3
+	SBB R1,R3
+	SKIP C, 1
+	JR set_high_score
+	EXR 0
+	RET r0, 0
 
 set_high_score:
-MOV r0, [2:0] ; load curr score into r4:r3
-MOV r1, r0
-MOV r0, [2:1]
-MOV [2:3], r0
-MOV r0, r1
-MOV [2:2], r0
-EXR 0
-RET r0, 1
+	MOV R0, [2:0] ; load curr score into r4:r3
+	MOV R1, R0
+	MOV R0, [2:1]
+	MOV [2:3], R0
+	MOV R0, R1
+	MOV [2:2], R0
+	EXR 0
+	RET R0, 1
