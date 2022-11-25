@@ -254,9 +254,16 @@ def get_tokenized_code(lines_of_asm):
                             print_error(format("E::Invalid keyword: %s" % str(code_obj.tokens[0])), i, code_obj.source)
                             raise ParserError()
             else:
-                if token == Opcodes().GOSUB or token == Opcodes().GOTO:
-                    #These directives will add two lines of code instead of one so adjust here
-                    reg_addr += 2
+                double_opcodes = [
+                    Opcodes().GOTO, Opcodes().GOSUB, Opcodes().CPL, Opcodes().NEG, Opcodes().LSR, Opcodes().SL, Opcodes().RLC,
+                ]
+                #These directives will add two lines of code instead of one so adjust here
+                if token in double_opcodes: 
+                    # CPL synthetic instruction can be 1 or 2 instructions wide, so special case it
+                    if token == Opcodes.CPL and len(code_obj.tokens) == 2: # ["CPL", "R0"]
+                        reg_addr += 1
+                    else:
+                        reg_addr += 2
                 elif token == Opcodes().ORG:
                     new_linenum = get_dec_or_token(code_obj.tokens[1].resolve(symbols))
                     if type(new_linenum) != int or not 0 <= new_linenum < 4096:
