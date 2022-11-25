@@ -173,9 +173,13 @@ def parse_asm(lines_of_asm,hexfile_out=None):
             
             cm = None
 
+            displayable_pseudo_opcodes = [
+                Opcodes().BYTE, Opcodes().NIBBLE, Opcodes().GOTO, Opcodes().GOSUB,
+                Opcodes().NOP, Opcodes().CPL, Opcodes().NEG, Opcodes().LSR, Opcodes().SL, Opcodes().RLC,
+            ]
             #Setup comment and source code display for non-special cases
             #"BYTE" and "NIBBLE" gets grouped in here to write these to just the first of the two generated lines
-            if tokens[0] not in Opcodes().pseudo_opcodes or (tokens[0] in (Opcodes().BYTE,Opcodes().NIBBLE,Opcodes().GOTO,Opcodes().GOSUB) and i==0):
+            if tokens[0] not in Opcodes().pseudo_opcodes or (tokens[0] in displayable_pseudo_opcodes and i==0):
                 if options.show_assembly_or_verbose():
                     cm = c.source
                 elif options.show_comments:
@@ -773,6 +777,9 @@ def read_asm_file(filename):
         stream = file.read()
     return stream
 
+def compose_lines(args):
+    return tuple(arg[0] for arg in args)
+
 class CodePack:
     def __init__(self, tokens=None, comment=None, source=None):
         self.tokens = tokens
@@ -1031,6 +1038,50 @@ class Opcodes:
         validate_four_bit_int(tokens[1])
         return self.args_r0n([tokens[0],"R0",tokens[1]&0xF],self.RETR0N)
 
+    def opcode_nop(self, tokens):
+        arg_count_test(len(tokens),1)
+        return self.opcode_mov(["MOV","R0","R0"]) # MOV R0, R0
+
+    def opcode_cpl(self, tokens):
+        if len(tokens) == 2:
+            if tokens[1] == "R0":
+                return self.opcode_xor(["XOR","R0",15]) # XOR R0, 0xF
+            raise ParserError("E::This opcode requires R0 as the argument")
+        elif len(tokens) == 3:
+            return compose_lines([
+                self.opcode_mov(["MOV",tokens[1],15]),        # MOV RX, 0xF
+                self.opcode_sub(["SUB",tokens[1],tokens[2]]), # SUB RX, RY
+            ])
+        raise ParserError("E::This opcode requires 1 or 2 arguments")
+
+    def opcode_neg(self, tokens):
+        arg_count_test(len(tokens),3)
+        return compose_lines([
+            self.opcode_mov(["MOV",tokens[1],0]),         # MOV RX, 0
+            self.opcode_sub(["SUB",tokens[1],tokens[2]]), # SUB RX, RY
+        ])
+
+    def opcode_lsr(self, tokens):
+        arg_count_test(len(tokens),2)
+        return compose_lines([
+            self.opcode_add(["ADD","R0",0]),    # ADD R0, 0
+            self.opcode_rrc(["RRC",tokens[1]]), # RRC RY
+        ])
+
+    def opcode_sl(self, tokens):
+        arg_count_test(len(tokens),3)
+        return compose_lines([
+            self.opcode_mov(["MOV",tokens[1],tokens[2]]),  # MOV RX, RY
+            self.opcode_add(["ADD",tokens[1], tokens[2]]), # ADD Rx, RY
+        ])
+
+    def opcode_rlc(self, tokens):
+        arg_count_test(len(tokens),3)
+        return compose_lines([
+            self.opcode_mov(["MOV",tokens[1], tokens[2]]), # MOV RX, RY
+            self.opcode_adc(["ADC",tokens[1], tokens[2]]), # ADC Rx, RY
+        ])
+
     #Constants for opcode lookup
     EXTENDEDOP,ADDRXRY,ADCRXRY,SUBRXRY = 0b0000,0b0001,0b0010,0b0011
     SBBRXRY,ORRXRY,ANDRXRY,XORRXRY = 0b0100,0b0101,0b0110,0b0111
@@ -1044,6 +1095,12 @@ class Opcodes:
     #Constants for pseudo-opcode names
     GOTO="GOTO"
     GOSUB="GOSUB"
+    NOP="NOP"
+    CPL="CPL"
+    NEG="NEG"
+    LSR="LSR"
+    SL="SL"
+    RLC="RLC"
     ORG="ORG"
     ASCII="ASCII"
     BYTE="BYTE"
@@ -1074,12 +1131,18 @@ class Opcodes:
         "SKIP": opcode_skip,
         GOTO: opcode_goto,
         GOSUB: opcode_gosub,
+        NOP: opcode_nop,
+        CPL: opcode_cpl,
+        NEG: opcode_neg,
+        LSR: opcode_lsr,
+        SL: opcode_sl,
+        RLC: opcode_rlc,
         ORG: opcode_org,
         ASCII: opcode_ascii,
         BYTE: opcode_byte,
         NIBBLE: opcode_nibble,
         }
-    pseudo_opcodes = [GOTO, GOSUB, ORG, ASCII, BYTE, NIBBLE]
+    pseudo_opcodes = [GOTO, GOSUB, NOP, CPL, NEG, LSR, SL, RLC, ORG, ASCII, BYTE, NIBBLE]
     token_preceders = [instructions]+[EQU,"[",":",","]
     VALID_MESSAGE_CHARS = ' !"#$%&\'()*+,-./0123456789:<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~'
 
