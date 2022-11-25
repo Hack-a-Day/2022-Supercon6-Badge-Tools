@@ -856,8 +856,11 @@ class Opcodes:
     def args_rgm(self, tokens,opcode):
         #BIT BSET BCLR BTG
         arg_count_test(len(tokens),3)
+        # handle R3 alias
+        if tokens[1] == "RS":
+            tokens[1] = "R3"
         if tokens[1] not in ["R0","R1","R2","R3"]:
-            raise ParserError("E::This opcode requires R0, R1, R2, or R3 as the first argument")
+            raise ParserError("E::This opcode requires R0, R1, R2, R3, or RS as the first argument")
         elif not is_int(tokens[2]) or not 0 <= tokens[2] < 4: 
             raise ParserError("E::This opcode requires a number [0..3] as the second argument")
         else:
