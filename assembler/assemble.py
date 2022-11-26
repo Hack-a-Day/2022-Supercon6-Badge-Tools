@@ -109,6 +109,7 @@ def parse_asm(lines_of_asm,hexfile_out=None):
         return
 
     #Second pass: Generate output
+    last_label = ""
     machine_lines = 0
     assembled_code = []
     for i, c in enumerate(code_list):
@@ -117,6 +118,13 @@ def parse_asm(lines_of_asm,hexfile_out=None):
         
         #Print Blank Lines and Tokens in Verbose Mode
         if tokens == None:
+            if options.show_verbose_output():
+                print_output(c.source, None, None, non_opcode=True)
+            continue
+        elif tokens[1] == ":": # handle local/global label
+            # keep track of the last global label, to assist with later symbol resolution
+            if not tokens[0].startswith("."):
+                last_label = tokens[0]
             if options.show_verbose_output():
                 print_output(c.source, None, None, non_opcode=True)
             continue
@@ -130,9 +138,9 @@ def parse_asm(lines_of_asm,hexfile_out=None):
         for t in tokens:
             if type(t) == SmartToken:
                 if len(working_tokens) > 0 and working_tokens[0] == "JR":
-                    working_tokens.append(t.resolve(symbols, relative_to_this_line_number=machine_lines))
+                    working_tokens.append(t.resolve(symbols, relative_to_this_line_number=machine_lines, global_label=last_label))
                 else:
-                    working_tokens.append(t.resolve(symbols))
+                    working_tokens.append(t.resolve(symbols, global_label=last_label))
             elif t in syntax.special_delimiters:
                 continue
             else:
@@ -216,6 +224,7 @@ def get_tokenized_code(lines_of_asm):
     symbols = dict()
 
     reg_addr = 0
+    last_label = ""
     
     raw_code = lines_of_asm.split('\n')
     for i in range(len(raw_code)):
@@ -245,7 +254,13 @@ def get_tokenized_code(lines_of_asm):
                             symbols[token] = s_value
                         elif str(code_obj.tokens[1]) == ":":
                             #This is a label, write line number to symbol table
-                            symbols[token] = s_value
+                            if code_obj.tokens[0].startswith("."):
+                                #local label, append to last global label, for later symbol resolution
+                                symbols[last_label + token] = s_value
+                            else:
+                                # global label, track for future local label concatenation
+                                last_label = token
+                                symbols[token] = s_value
                         else:
                             print_error(format("E::Invalid keyword: %s" % str(code_obj.tokens[0])), i, code_obj.source)
                             raise ParserError()
@@ -531,7 +546,7 @@ class SmartToken(list):
             self._stream = list(data)
         else:
             self._stream = list()
-    def resolve(self, symbols, relative_to_this_line_number=None):
+    def resolve(self, symbols, relative_to_this_line_number=None, global_label=""):
         is_set = False
         found_named_reg = False
         prefix = None
@@ -572,6 +587,8 @@ class SmartToken(list):
                 continue
                     
             #Everything that's not a symbol or a token has been filtered out by now
+            if e.startswith('.'): # if the symbol starts with a '.', it's a local label. Concat with global label for symbol resolution
+                e = global_label + e
             if e in symbols:
                 if working_token == None and relative_to_this_line_number != None:
                     #This is used for calculating symbol values relative to actual line number for JR opcode
