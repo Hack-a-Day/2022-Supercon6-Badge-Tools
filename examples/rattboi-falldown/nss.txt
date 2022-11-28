@@ -1,0 +1,39 @@
+# Nintendo Super System pinout
+
+6-pin
+green = gnd
+white-yellow = y
+white-green = x
+white-red = r shoulder
+white-blue = l shoulder
+
+
+12-pin
+black = gnd
+brown = select
+green = left
+yellow = right
+orange = A
+red = B
+grey = start
+purple = up
+blue = down
+
+---------------
+-             -
+- l-s r-s gnd -
+-             -
+-      x   y  -
+-             -
+---------------
+
+--------------------
+-                  -
+- sta  le   b      -
+-                  -
+- up   ri  sel gnd -
+- |    |           -
+- dn   a           -
+-                  -
+--------------------
+
