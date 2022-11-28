@@ -145,7 +145,7 @@ def parse_asm(lines_of_asm,hexfile_out=None):
                         # this is our only real opportunity to determine if a relative offset via label is invalid
                         # specifically, a calculated offset of 0 will later be converted to SKIP F, 4, and is thus incorrect
                         if type(token) == int and not 1 <= token < 5:
-                            print_error("E::SKIP opcode requires an offset [1..4] as argument but got %s" % token, i, c.source)
+                            print_error("E::SKIP instruction requires an offset [1..4] as argument but got %s" % token, i, c.source)
                             raise ParserError()
                         working_tokens.append(token)
                     else:
