@@ -143,7 +143,8 @@ def parse_asm(lines_of_asm,hexfile_out=None):
                     elif len(working_tokens) > 0 and working_tokens[0] == "SKIP":
                         token = t.resolve(symbols, relative_to_this_line_number=machine_lines, global_label=last_label)
                         # this is our only real opportunity to determine if a relative offset via label is invalid
-                        # specifically, a calculated offset of 0 will later be converted to SKIP F, 4, and is thus incorrect
+                        # specifically, a label-calculated offset of 0 will be interpreted as a skip of 4 opcodes and is thus incorrect
+                        # however, a developer hand-writing a 0 literal may have known this is a skip of 4 opcodes
                         if type(token) == int and not 1 <= token < 5:
                             print_error("E::SKIP instruction requires an offset [1..4] as argument but got %s" % token, i, c.source)
                             raise ParserError()
