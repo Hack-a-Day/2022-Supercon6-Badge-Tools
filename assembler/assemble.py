@@ -121,7 +121,7 @@ def parse_asm(lines_of_asm,hexfile_out=None):
             if options.show_verbose_output():
                 print_output(c.source, None, None, non_opcode=True)
             continue
-        elif tokens[1] == ":": # handle local/global label
+        elif len(tokens) > 1 and tokens[1] == ":": # handle local/global label
             # keep track of the last global label, to assist with later symbol resolution
             if not tokens[0].startswith("."):
                 last_label = tokens[0]
@@ -134,19 +134,28 @@ def parse_asm(lines_of_asm,hexfile_out=None):
             continue
 
         #Do a substitution pass for variables in this set of tokens
-        working_tokens = list()
-        for t in tokens:
-            if type(t) == SmartToken:
-                if len(working_tokens) > 0 and working_tokens[0] == "JR":
-                    working_tokens.append(t.resolve(symbols, relative_to_this_line_number=machine_lines, global_label=last_label))
-                else:
-                    working_tokens.append(t.resolve(symbols, global_label=last_label))
-            elif t in syntax.special_delimiters:
-                continue
-            else:
-                working_tokens.append(t.upper())
-        #Get the machine code for this set of tokens
         try:
+            working_tokens = list()
+            for t in tokens:
+                if type(t) == SmartToken:
+                    if len(working_tokens) > 0 and working_tokens[0] == "JR":
+                        working_tokens.append(t.resolve(symbols, relative_to_this_line_number=machine_lines, global_label=last_label))
+                    elif len(working_tokens) > 0 and working_tokens[0] == "SKIP":
+                        token = t.resolve(symbols, relative_to_this_line_number=machine_lines, global_label=last_label)
+                        # this is our only real opportunity to determine if a relative offset via label is invalid
+                        # specifically, a label-calculated offset of 0 will be interpreted as a skip of 4 opcodes and is thus incorrect
+                        # however, a developer hand-writing a 0 literal may have known this is a skip of 4 opcodes
+                        if type(token) == int and not 1 <= token < 5:
+                            print_error("E::SKIP instruction requires an offset [1..4] as argument but got %s" % token, i, c.source)
+                            raise ParserError()
+                        working_tokens.append(token)
+                    else:
+                        working_tokens.append(t.resolve(symbols, global_label=last_label))
+                elif t in syntax.special_delimiters:
+                    continue
+                else:
+                    working_tokens.append(t.upper())
+        #Get the machine code for this set of tokens
             opcode = working_tokens[0]
             if opcode.upper() == Opcodes().ORG:
                 machinecode_tuple = Opcodes().get_binary(working_tokens, machine_lines)
