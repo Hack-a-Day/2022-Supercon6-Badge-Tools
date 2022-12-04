@@ -2,6 +2,8 @@ First off, I figured out a lot of this by reading and examining
 dice-roll by Tom Nardi. Understanding his code and making lots
 of mistakes helped me get this program finished.
 
+Thank you Tom!
+
 mtg_numbers is just a life points displaying program when playing
 Magic: The Gathering.  You can increase or decrease the numbers
 on the display by pressing the minus or plus buttons in the
