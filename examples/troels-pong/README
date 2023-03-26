@@ -1,0 +1,6 @@
+Simple pong game
+
+This is a simple two player pong game for one badge.
+
+Buttons in operand Y 1 and 2, and OPCODE 8 and 4 are just to control the
+pedals.
