@@ -3,3 +3,4 @@ compiler/examples/*.hex
 examples/**/*.hex
 **/__pycache__/**
 *env/**
+!examples/simenzhor-flappy/hackadayberlin-mode.hex
