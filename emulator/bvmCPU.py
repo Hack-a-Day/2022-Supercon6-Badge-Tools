@@ -315,8 +315,10 @@ class CPU:
         self.handleJumps(y)
         if self.ram[y] == 0:
             self.Z = 1
+            self.C = 1
         else:
             self.Z = 0
+            self.C = 0
 
 
     def DEC(self, args):
@@ -327,8 +329,11 @@ class CPU:
             self.Z = 1
         else:
             self.Z = 0
+        if self.ram[y] == 15:
+            self.C = 0
+        else:
+            self.C = 1
 
-    
 
     def DSZ(self, args):
         y = args['y']
