@@ -1,5 +1,7 @@
 # Hackaday Superconference 2022 Badge (Voja4)
 
+![Voja4](voja4.jpg?raw=true)
+
 ## Resources
 
 * [Badge Reveal](https://hackaday.com/2022/10/12/the-2022-supercon-badge-is-a-handheld-trip-through-computing-history/)
