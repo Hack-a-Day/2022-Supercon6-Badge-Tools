@@ -18,8 +18,6 @@ Back in 2020, when we thought we were going to have a Supercon in Belgrade, Mike
 
 While you can input programs directly, comments and a nice provision for subroutines makes life a lot more navigable.  Learning to use the assembler is a great next step along your journey.
 
-If you don't have Python installed, you can also run the same assembler in the cloud.  (Fluffy!)  http://cloud.wd5gnr.com/badgeasm/
-
 ## Emulator
 
 Why would you emulate a badge that you have in your hands?  Well, it _does_ make for a faster code, test, code cycle.  So far, we have gotten most of the core functionality of the badge working, but buttons and how to think about IO are still a work in progress.  Hack away!
