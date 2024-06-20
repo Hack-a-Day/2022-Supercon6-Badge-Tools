@@ -27,7 +27,7 @@ class BVM:
         self.window.title("BVM: 2022 Hackaday Supercon.6 Badge Virtual Machine")
         self.canvas = tk.Canvas(self.window, width=self.width, height=self.height, bd=0)
         bg = Image.open("gui_assets/badgeface.jpg")
-        bg.thumbnail((self.width, self.height), Image.ANTIALIAS)
+        bg.thumbnail((self.width, self.height), Image.LANCZOS)
         self.bgImage = ImageTk.PhotoImage(bg)
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.bgImage)
         self.canvas.pack()
@@ -161,9 +161,9 @@ class LED:
         else:
             self.px = 50/self.scale
         offImageObj = Image.open("gui_assets/leds/" + prefix + "off.jpg")
-        offImageObj.thumbnail((self.px, self.px), Image.ANTIALIAS)
+        offImageObj.thumbnail((self.px, self.px), Image.LANCZOS)
         onImageObj = Image.open("gui_assets/leds/" + prefix + "on.jpg")
-        onImageObj.thumbnail((self.px, self.px), Image.ANTIALIAS)
+        onImageObj.thumbnail((self.px, self.px), Image.LANCZOS)
         self.offImage = ImageTk.PhotoImage(offImageObj)
         self.onImage = ImageTk.PhotoImage(onImageObj)
         self.canvas = canvas
