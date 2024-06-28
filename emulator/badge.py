@@ -13,8 +13,10 @@ class Badge():
         self.initMemory()
         self.clock = 0b0
         self.oldTime = timer()
+        self.oldSync = timer()
         self.newTime = timer()
         self.speed = 250e3 # Hz
+        self.usync = 1e3   # Hz
         self.progMem = []
         #self.pc = 0
         self.acc = [
@@ -52,7 +54,7 @@ class Badge():
 
     def initMemory(self):
         self.cpu.ram[0xff] = randint(0, 16) # Set random value at SFRFF
-
+        self.cpu.ram[0xf4] = 0              # zero RdFlags
 
     def load(self, program):
         self.progmem=[]
@@ -91,6 +93,9 @@ class Badge():
 
     def update(self):
         self.newTime = timer()
+        if self.newTime > self.oldSync + 0.5/self.usync:
+            self.oldSync = timer()
+            self.cpu.ram[0xf4] |= 0b0001 # set bit 0 in SFRF4
         if self.newTime > self.oldTime + 0.5/self.speed:
             if self.clock == 0:
                 # Set random value at SFRFF
@@ -105,9 +110,9 @@ class Badge():
                 self.clock = 0
             self.oldTime = timer()
 
-        # Check SFR1 and set clock speed accordingly
+        # Check SFRF1 and set clock speed accordingly
         speeds = [250e3, 100e3, 30e3, 10e3, 3e3, 1e3, 500, 200, 100, 50, 20, 10, 5, 2, 1, .5]
         self.speed = speeds[self.cpu.ram[0xf1]]
-        
-
-
+        # Check SFRF2 and set UserSync accordingly
+        usyncs = [1000, 600, 400, 250, 150, 100, 60, 40, 25, 15, 10, 6, 4, 2.5, 1.5, 1]
+        self.usync = usyncs[self.cpu.ram[0xf2]]
