@@ -281,6 +281,9 @@ class CPU:
             self.ram[args['nn']] = self.ram[0]
         elif args['mode'] ==  5: # R0,NN
             self.ram[0] = self.ram[args['nn']]
+            # UserSync; read clears bit 0
+            if self.ram[args['nn']] == 244:
+                self.cpu.ram[0xf4] &= 0b1110
         elif args['mode'] ==  6: # PC,NN
             # print(f"before mov PC, {hex(args['nn'])}" )
             self.ram[15] = (args['nn'] & 0xF0) >> 4
