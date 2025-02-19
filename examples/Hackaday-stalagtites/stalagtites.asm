@@ -50,7 +50,7 @@ inc r8
 mov r0, r9
 cp r0, 15
 
-skip nz, 0 ; two b/c the goto/gosub evaluates to two commands each.  yoiks, that's a trap.  and zero is 4 -- maybe should fix this too
+skip nz, 4 ; two b/c the goto/gosub evaluates to two commands each.  yoiks, that's a trap.  and zero is 4 -- maybe should fix this too
 gosub delay
 goto main
 
