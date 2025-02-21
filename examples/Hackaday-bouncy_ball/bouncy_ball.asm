@@ -52,7 +52,7 @@ add r9, r7
 ; random lurch
 mov r0, [0xFF]
 cp r0, 0 ; if rnd == 0
-skip nz, 0
+skip nz, 4
 mov r0, r8 ; and current X >= 1
 cp r0, 1 ; 
 skip nc, 1
