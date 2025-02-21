@@ -131,7 +131,7 @@ check_zero:
   DEC R1
   MOV R0,[R1:R2]
   BIT R0,3
-  SKIP Z,0
+  SKIP Z,4
   INC R1
   DEC R2
   GOTO findgrain ; there's no room, reset registers and move along
@@ -257,7 +257,7 @@ check_three:
   INC R1
   MOV R0,[R1:R2]
   BIT R0,0
-  SKIP Z,0
+  SKIP Z,4
   DEC R1
   DEC R2
   GOTO findgrain ; there's no room, reset registers and move along
